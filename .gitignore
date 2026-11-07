@@ -1,0 +1,33 @@
+# Rendus Quarto
+/_rendu/
+/.quarto/
+*_files/
+/*.tex
+/*.log
+/*.aux
+/*.toc
+
+# Copie des bibliothèques reveal.js faite par freeze (régénérée à chaque rendu)
+/_freeze/site_libs/
+
+# Decks générés par `ecoelec generer` (à partir de modules/ et parcours/)
+/decks/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Données téléchargées par les scripts de data/ (non versionnées)
+/data/telechargements/
+
+# Divers
+.DS_Store
+*.swp
+
+**/*.quarto_ipynb
