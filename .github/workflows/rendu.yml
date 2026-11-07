@@ -6,8 +6,7 @@
 name: Rendu
 
 on:
-  push:
-  pull_request:
+  push: # couvre aussi les pull requests ouvertes depuis une branche du dépôt
   workflow_dispatch:
 
 concurrency:
@@ -59,11 +58,16 @@ jobs:
           uv run quarto render decks/parcours --profile slides,autonome
           --output-dir _rendu/autonome 2>&1 | tee autonome.log
 
+      - name: Test des decks autonomes avec maths et graphique interactif (module d'exemple)
+        run: >-
+          uv run quarto render decks/modules/exemple --profile slides,autonome
+          --output-dir _rendu/autonome 2>&1 | tee autonome-exemple.log
+
       - name: Decks des parcours en PDF
         run: uv run ecoelec pdf
 
       - name: Contrôles (renvois masqués, références et images manquantes)
-        run: uv run ecoelec controler poly.log slides.log autonome.log
+        run: uv run ecoelec controler poly.log slides.log autonome.log autonome-exemple.log
 
       - name: Déposer le rendu
         if: always()
