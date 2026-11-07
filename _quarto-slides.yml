@@ -1,0 +1,40 @@
+# Profil « slides » : rend les decks générés dans decks/ par `uv run ecoelec generer`.
+# Les sources des slides sont dans modules/<id>/slides.qmd ; ne pas éditer decks/.
+# Projet de type website : les bibliothèques reveal.js sont partagées entre les decks
+# (site_libs) au lieu d'être copiées dans chacun.
+
+project:
+  type: website
+  output-dir: _rendu/slides
+  render:
+    - decks/index.qmd
+    - decks/**/*.qmd
+
+website:
+  title: "Économie de l'électricité — slides"
+  navbar:
+    left:
+      - text: Slides
+        href: decks/index.qmd
+      - text: Poly
+        href: ../poly/index.html
+
+filters:
+  - path: commun/filtres/marques.lua
+    at: pre-ast
+  - commun/filtres/typographie.lua
+
+format:
+  revealjs:
+    author: Alexis Lebeau
+    theme: [default, commun/slides.scss]
+    width: 1280
+    height: 720
+    margin: 0.06
+    slide-number: c/t
+    transition: none
+    hash: true
+    menu: true
+    preview-links: auto
+    fig-width: 8
+    fig-height: 4.5

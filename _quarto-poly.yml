@@ -1,0 +1,47 @@
+# Profil « poly » : livre unique et complet, en HTML et en PDF.
+# Un chapitre par module, dans l'ordre de la banque de modules.
+
+project:
+  type: book
+  output-dir: _rendu/poly
+
+book:
+  title: "Économie de l'électricité"
+  subtitle: "Marchés, analyse économique et modélisation"
+  author: Alexis Lebeau
+  date: last-modified
+  date-format: long
+  output-file: economie-electricite
+  chapters:
+    - index.qmd
+    - modules/systeme/poly.qmd
+    - modules/cadre/poly.qmd
+    - modules/court-terme/poly.qmd
+    - modules/long-terme/poly.qmd
+    - modules/architecture-marches/poly.qmd
+    - modules/capacite/poly.qmd
+    - modules/reseaux/poly.qmd
+    - modules/nucleaire/poly.qmd
+    - modules/enr-flexibilites/poly.qmd
+    - modules/market-design-ue/poly.qmd
+    - modules/crise-2022/poly.qmd
+    - references.qmd
+
+filters:
+  - path: commun/filtres/formalisation.lua
+    at: pre-ast
+  - commun/filtres/typographie.lua
+
+number-sections: true
+crossref:
+  chapters: true
+
+format:
+  html:
+    theme: [cosmo, commun/poly.scss]
+    toc-depth: 3
+  pdf:
+    documentclass: scrbook
+    papersize: a4
+    toc-depth: 2
+    colorlinks: true

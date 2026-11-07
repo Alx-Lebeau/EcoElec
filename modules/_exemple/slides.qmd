@@ -1,0 +1,76 @@
+## Rappel : le système électrique {.rappel module="systeme"}
+
+Slide visible seulement quand le module `systeme` ne précède pas ce module dans le parcours.
+
+- L'électricité se stocke mal : l'offre doit égaler la demande à chaque instant.
+- Chaque filière a un coût variable différent.
+
+## Une courbe d'offre
+
+```{python}
+#| label: fig-offre-exemple
+#| fig-cap: "Courbe d'offre d'un système illustratif"
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from pyelec import DATA_DIR, style
+from pyelec.figures import merit_order
+
+style.use()
+parc = pd.read_csv(DATA_DIR / "exemple" / "merit-order-illustratif.csv")
+fig, ax = plt.subplots()
+prix = merit_order(ax, parc, demand=125)
+style.add_source(fig, "valeurs illustratives du TP 01", "2024")
+plt.show()
+```
+
+::: {.notes}
+Les notes de l'orateur ne sont pas marquées : elles accompagnent la slide dans toutes les versions.
+:::
+
+## Le prix d'équilibre
+
+Le prix est fixé par le coût variable de la dernière filière appelée : ici `{python} f"{prix:.0f}"` €/MWh.
+
+::: {.intuitif}
+On peut montrer que ce prix est aussi celui qu'aurait choisi un planificateur qui minimise le coût total.
+:::
+
+::: {.formel}
+Ce prix est le multiplicateur de la contrainte d'équilibre offre-demande (@eq-eod-exemple).
+:::
+
+## Formulation {.formel}
+
+$$
+\min_{p_{i}} \; \sum_{i \in \Filieres} \CV_i \, p_i
+\quad \text{s.c.} \quad
+\sum_{i \in \Filieres} p_i = d \quad (\lambda),
+\qquad 0 \le p_i \le \Pmax_i
+$$ {#eq-eod-exemple}
+
+À l'optimum, $\lambda$ égale le coût variable de la filière marginale[, comme l'illustre la @fig-offre-exemple]{.approfondissement}.
+
+## Pour aller plus loin {.approfondissement}
+
+- Demande élastique : le prix peut s'établir au-dessus du coût de la dernière filière.
+- Périodes tendues : prix de rareté et valeur de l'énergie non distribuée ($\VOLL$).
+
+## Une figure interactive {.approfondissement}
+
+```{python}
+import plotly.express as px
+
+from pyelec import color, label
+
+fig = px.bar(
+    parc.sort_values("cout_variable").assign(filiere=lambda d: d["filiere"].map(label)),
+    x="filiere",
+    y="capacite",
+    color="filiere",
+    color_discrete_map={label(f): color(f) for f in parc["filiere"]},
+    labels={"filiere": "Filière", "capacite": "Capacité (GW)"},
+)
+fig.update_layout(showlegend=False, height=420)
+fig.show()
+```

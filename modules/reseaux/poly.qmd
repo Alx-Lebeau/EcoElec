@@ -1,0 +1,7 @@
+# Réseaux et TURPE {#sec-reseaux}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

@@ -1,0 +1,39 @@
+# Brouillon, à valider. Format type 12h, d'après organisation-du-cours.md (section 5) :
+# le socle complet, les deux TP, et deux ou trois modules au choix.
+# Ici : capacité, réseaux et TURPE, ENR et flexibilités (choix à faire selon la session).
+# Point ouvert : représentation des TP dans les parcours (séance dédiée, durée).
+titre: Économie de l'électricité
+formalisme: formel
+seances:
+  - titre: Le système électrique
+    duree: 90
+    modules:
+      - systeme: complet
+  - titre: Le cadre d'analyse économique
+    duree: 90
+    modules:
+      - cadre: complet
+  - titre: Équilibre de court terme
+    duree: 90
+    modules:
+      - court-terme: complet
+  - titre: Équilibre de long terme
+    duree: 90
+    modules:
+      - long-terme: complet
+  - titre: Architecture des marchés
+    duree: 90
+    modules:
+      - architecture-marches: complet
+  - titre: Capacité et sécurité d'approvisionnement
+    duree: 90
+    modules:
+      - capacite: complet
+  - titre: Réseaux et TURPE
+    duree: 90
+    modules:
+      - reseaux: complet
+  - titre: ENR et flexibilités
+    duree: 90
+    modules:
+      - enr-flexibilites: complet

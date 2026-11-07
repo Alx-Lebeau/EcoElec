@@ -1,0 +1,9 @@
+# Profil d'appoint « autonome », à combiner avec le profil slides :
+#   uv run quarto render slides/parcours --profile slides,autonome --output-dir _rendu/autonome
+# Chaque deck devient un seul fichier HTML (bibliothèques, images, maths incluses),
+# projetable sans connexion ni Python sur la machine.
+
+format:
+  revealjs:
+    embed-resources: true
+    self-contained-math: true

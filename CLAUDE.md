@@ -1,0 +1,155 @@
+# CLAUDE.md — dépôt EcoElec
+
+Consignes pour travailler dans ce dépôt. Les choix de conception du cours
+(organisation, banque de modules, état d'avancement) sont tenus hors du dépôt,
+dans le projet de travail de l'auteur ; ce fichier couvre la mise en œuvre.
+
+## Le projet
+
+Cours modulaire d'économie de l'électricité. Un seul projet Quarto produit le
+poly (livre HTML + PDF), les slides (reveal.js, un deck par séance, aussi en HTML
+autonome et en PDF) et les TP (notebooks). Le cours est une banque de modules ;
+chaque format (3h, 6h, 12h) ou session y pioche au moyen d'un parcours. Chaque
+module existe en quatre versions tirées d'une seule source : profondeur
+(*essentiel* / *complet*) × formalisme (*intuitif* / *formel*). Le mot « avancé »
+est proscrit : il confond les deux axes.
+
+## Commandes
+
+```sh
+uv sync                                          # environnement (versions figées dans uv.lock)
+uv run pytest                                    # tests de l'outillage et des filtres
+uv run ecoelec verifier                          # modules, parcours, chapitres du poly
+uv run ecoelec generer                           # vérifie puis génère decks/
+uv run quarto render --profile poly              # poly → _rendu/poly/
+uv run quarto render --profile slides            # decks → _rendu/slides/
+uv run quarto render decks/parcours --profile slides,autonome --output-dir _rendu/autonome
+uv run ecoelec pdf                               # PDF des decks autonomes (decktape, Chrome)
+uv run ecoelec controler poly.log slides.log     # avertissements Quarto, images manquantes
+uv run ecoelec nouveau-module ID --titre "…"     # module en ébauche
+```
+
+Toujours lancer `ecoelec generer` avant de rendre les slides. Quarto est installé à
+part (version figée dans `.github/workflows/rendu.yml`) ; `uv run quarto …` lui
+fournit le Python du projet.
+
+## Arborescence
+
+| Chemin | Contenu |
+|---|---|
+| `_quarto.yml`, `_quarto-*.yml` | configuration commune et profils `poly`, `slides`, `autonome` |
+| `commun/` | macros, bibliographie, thèmes, filtres Lua (voir `commun/README.md`) |
+| `modules/<id>/` | `module.yml`, `poly.qmd` (chapitre), `slides.qmd` (slides marquées), `tp/` |
+| `modules/_exemple/` | module de démonstration des marques, hors poly et parcours, rendu par la CI |
+| `parcours/*.yml` | un parcours par format type ou par session réelle |
+| `pyelec/` | code partagé : chemins, palette et libellés des filières, style, figures |
+| `outils/` | commande `ecoelec` |
+| `data/` | petits jeux de données ouverts, documentés dans `data/README.md` |
+| `decks/` | **généré** par `ecoelec generer`, non versionné : ne jamais l'éditer |
+| `_freeze/` | résultats de calcul en cache, versionnés |
+
+## Modules
+
+`module.yml` :
+
+```yaml
+titre: "Équilibre de court terme et formation des prix"
+prerequis: [systeme]          # identifiants de modules
+objectifs:                    # affichés en ouverture du module dans chaque deck
+  - Construire un merit order et en déduire le prix
+durees:                       # minutes ; null tant que non estimées
+  essentiel: {intuitif: 30, formel: 40}
+  complet:   {intuitif: 75, formel: 90}
+tp: [tp-court-terme]          # notebooks modules/<id>/tp/<tp>.ipynb
+```
+
+- Un module n'a ni introduction ni conclusion générales : elles appartiennent au
+  parcours (clés `introduction` et `conclusion` d'une séance).
+- `poly.qmd` commence par `# Titre {#sec-<id>}` puis l'inclusion des macros.
+  Tout nouveau chapitre est ajouté à la liste de `_quarto-poly.yml` (`ecoelec verifier` le contrôle).
+- `slides.qmd` ne contient que des slides `##`, sans en-tête YAML : le générateur
+  ajoute le titre du module, les objectifs et la version.
+
+## Marques (slides)
+
+| Marque | Visible dans |
+|---|---|
+| `.approfondissement` | la version complète seulement |
+| `.formel` | la version formelle seulement |
+| `.intuitif` | la version intuitive seulement (phrases de liaison) |
+| `.rappel` | les parcours où un prérequis ne précède pas le module ; `module="id"` pour un prérequis précis |
+
+- Slide entière : `## Titre {.formel}` (jusqu'au titre suivant de même niveau ou au `---` suivant).
+- Bloc : `::: {.formel}` … `:::`. Passage : `[texte]{.intuitif}`.
+- Marques cumulées sur un élément : visible seulement si toutes le sont.
+- **Règle d'or** : un contenu non marqué ne s'appuie jamais sur un contenu marqué
+  (pas de renvoi `@eq-…` vers une équation `.formel` depuis du texte commun). La CI
+  rend les quatre versions de chaque module et échoue sur tout renvoi non résolu.
+- Le formalisme s'ajoute à l'intuition : graphique et raisonnement communs, maths en surcouche.
+- Vérifier dans la vue auteur (`_rendu/slides/decks/modules/<id>/auteur.html`) que
+  le discours tient dans chaque version.
+
+Poly : pas de marques. Les développements mathématiques vont dans
+`::: {.formalisation titre="…"}` (encadré replié en HTML).
+
+## Parcours
+
+```yaml
+titre: Comprendre le prix de l'électricité
+formalisme: intuitif                 # pour tout le parcours
+seances:
+  - titre: Du merit order au prix de long terme
+    duree: 90
+    modules:
+      - court-terme: essentiel
+      - long-terme: {profondeur: complet, formalisme: formel}   # exception
+```
+
+`ecoelec generer` vérifie que les durées tiennent dans chaque séance, signale les
+prérequis absents (les slides `.rappel` sont alors incluses) et produit, par
+parcours, une page des séances avec les chapitres du poly à lire.
+
+## Code
+
+- Identifiants (variables, fonctions, modules Python) en anglais ; commentaires,
+  docstrings et messages en français. Noms de dossiers et sous-commandes en français.
+- Chemins : toujours `pyelec.DATA_DIR` / `pyelec.ROOT`, jamais de chemin relatif
+  (les documents s'exécutent depuis des dossiers différents).
+- Couleurs et libellés des filières : `pyelec.color()` et `pyelec.label()` uniquement.
+- Figures : `pyelec.style.use()`, puis `style.add_source(fig, source, date)` sous chaque figure.
+- Code réutilisé d'un module à l'autre : dans `pyelec`, pas copié dans les documents.
+- Optimisation : PuLP avec HiGHS.
+- `uv run ruff check . && uv run ruff format .` avant de valider.
+
+## Rédaction
+
+- Français ; reformulation minimale, tournures impersonnelles, rapport signal/bruit élevé.
+- Formulations épicènes : « le public », « les élèves », « on » plutôt que « le lecteur », « l'étudiant ».
+- Typographie : guillemets « » ; les espaces insécables avant `: ; ! ?` et dans
+  les guillemets sont posées automatiquement au rendu (`typographie.lua`) :
+  écrire des espaces ordinaires.
+- Notations mathématiques : macros de `commun/_macros.qmd` (seule source).
+- Aucun chiffre recopié à la main dans une slide : le calculer depuis `data/`.
+- Chiffres et éléments réglementaires datés : vérifier contre des sources
+  actuelles, signaler toute modification, citer les sources (`commun/biblio.bib`).
+
+## Données et publication
+
+Le dépôt deviendra public : ni données internes, ni données sous licence
+restrictive (EPEX, EEX), ni contenus d'autres personnes sans leur accord. Voir `data/README.md`.
+
+## Points techniques
+
+- **Empreinte des decks** : `freeze: auto` ne réexécute un document que si son
+  propre texte change. Chaque deck généré porte une empreinte de ses sources
+  (fichiers inclus, `pyelec/`, `data/`), donc toute modification de l'une d'elles
+  le fait réexécuter. Les chapitres du poly n'en ont pas : après une modification
+  de `pyelec/` ou `data/`, supprimer `_freeze/modules/<id>/` ou rendre le chapitre seul.
+- `commun/_macros.qmd` ne contient que des `\providecommand` : tout autre contenu
+  apparaîtrait dans les documents.
+- Le profil `slides` est un projet *website* (bibliothèques partagées) ; son
+  rendu complet nettoie `_rendu/slides/` seulement.
+- Quarto ignore les fichiers et dossiers préfixés par `_` (d'où `modules/_exemple/`
+  rendu via `decks/modules/exemple/`).
+- PDF local sans LuaTeX complet : `uv run quarto render --profile poly -M pdf-engine:xelatex`.
+- Maths des slides : MathJax depuis un CDN dans le site ; embarqué dans les decks autonomes.

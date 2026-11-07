@@ -1,0 +1,7 @@
+# Market design européen {#sec-market-design-ue}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

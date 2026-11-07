@@ -1,0 +1,7 @@
+# Architecture des marchés {#sec-architecture-marches}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::
