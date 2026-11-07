@@ -1,0 +1,9 @@
+\providecommand{\R}{\mathbb{R}}
+\providecommand{\Filieres}{\mathcal{F}}
+\providecommand{\Temps}{\mathcal{T}}
+\providecommand{\CV}{\mathrm{CV}}
+\providecommand{\CF}{\mathrm{CF}}
+\providecommand{\VOLL}{\mathrm{VOLL}}
+\providecommand{\END}{\mathrm{END}}
+\providecommand{\Pmax}{\overline{P}}
+\providecommand{\unite}[1]{\,\text{#1}}

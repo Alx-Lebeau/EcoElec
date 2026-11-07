@@ -1,0 +1,7 @@
+titre: "Le cadre d'analyse économique"
+prerequis: [systeme]                 # à confirmer (banque de modules)
+objectifs: []
+durees:                              # en minutes
+  essentiel: {intuitif: null, formel: null}
+  complet:   {intuitif: null, formel: null}
+tp: []

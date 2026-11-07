@@ -1,0 +1,7 @@
+# ENR et flexibilités {#sec-enr-flexibilites}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

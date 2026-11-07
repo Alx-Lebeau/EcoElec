@@ -1,0 +1,7 @@
+# Le système électrique {#sec-systeme}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

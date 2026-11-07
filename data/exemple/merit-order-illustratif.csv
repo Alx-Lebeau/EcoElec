@@ -1,0 +1,7 @@
+filiere,capacite,cout_variable
+eolien,22.9,0
+solaire,24.3,0
+nucleaire,61.4,10
+hydraulique,10.0,70
+gaz,12.6,80
+imports,10.0,100

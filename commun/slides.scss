@@ -1,0 +1,67 @@
+/*-- scss:defaults --*/
+
+// Charte provisoire : à remplacer si l'établissement impose logo et couleurs.
+// Polices système uniquement : aucun appel réseau, decks projetables hors connexion.
+$font-family-sans-serif: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$presentation-heading-color: #1f4e79;
+$link-color: #1f4e79;
+$presentation-font-size-root: 32px;
+$presentation-h2-font-size: 1.4em;
+
+/*-- scss:rules --*/
+
+// Titre de module (slide de section générée par `ecoelec generer`)
+.reveal .slides section.titre-module h1 {
+  color: $presentation-heading-color;
+}
+
+// ---------------------------------------------------------------------------
+// Vue auteur : chaque marque signalée par un bandeau de couleur.
+// Le filtre marques.lua remplace les classes .formel, .approfondissement…
+// par .marque-formel, .marque-approfondissement… dans la vue auteur seulement.
+// ---------------------------------------------------------------------------
+
+$marques: (
+  "approfondissement": #6a3d9a,
+  "formel": #1f78b4,
+  "intuitif": #33a02c,
+  "rappel": #e66101,
+);
+
+@each $nom, $couleur in $marques {
+  // Slide entière marquée
+  .reveal .slides section.marque-#{$nom} {
+    border-top: 14px solid $couleur;
+  }
+  .reveal .slides section.marque-#{$nom} > h2::after,
+  .reveal .slides section.marque-#{$nom} > h1::after {
+    content: "#{$nom}";
+    margin-left: 0.6em;
+    padding: 0.05em 0.4em;
+    border-radius: 0.2em;
+    font-size: 0.45em;
+    font-weight: normal;
+    vertical-align: middle;
+    color: white;
+    background: $couleur;
+  }
+
+  // Bloc marqué (dans .slides : les fonds de slide reprennent les classes de la slide)
+  .reveal .slides div.marque-#{$nom} {
+    border-left: 8px solid $couleur;
+    padding-left: 0.5em;
+    background: rgba($couleur, 0.07);
+  }
+  .reveal .slides div.marque-#{$nom}::before {
+    content: "#{$nom}";
+    display: block;
+    font-size: 0.5em;
+    color: $couleur;
+  }
+
+  // Passage marqué dans une phrase
+  .reveal .slides span.marque-#{$nom} {
+    border-bottom: 3px solid $couleur;
+    background: rgba($couleur, 0.07);
+  }
+}

@@ -1,0 +1,24 @@
+# Configuration commune au poly et aux slides.
+#
+# Deux profils exclusifs :
+#   quarto render --profile poly     → livre (HTML + PDF), _rendu/poly/
+#   quarto render --profile slides   → decks générés par `ecoelec generer`, _rendu/slides/
+# Profil d'appoint, à combiner avec slides :
+#   --profile slides,autonome        → decks en un seul fichier HTML, utilisables hors connexion
+
+project:
+  output-dir: _rendu
+
+profile:
+  group:
+    - [poly, slides]
+
+lang: fr
+bibliography: commun/biblio.bib
+
+jupyter: python3
+
+execute:
+  freeze: auto   # un nouveau rendu ne réexécute que les documents modifiés
+  echo: false
+  warning: false

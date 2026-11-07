@@ -1,0 +1,7 @@
+titre: "Le système électrique"
+prerequis: []
+objectifs: []
+durees:                              # en minutes
+  essentiel: {intuitif: null, formel: null}
+  complet:   {intuitif: null, formel: null}
+tp: []

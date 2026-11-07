@@ -1,0 +1,7 @@
+# Équilibre de long terme {#sec-long-terme}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

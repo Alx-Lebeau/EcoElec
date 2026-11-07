@@ -1,0 +1,7 @@
+# Équilibre de court terme et formation des prix {#sec-court-terme}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

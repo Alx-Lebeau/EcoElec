@@ -1,0 +1,17 @@
+# Avant-propos {.unnumbered}
+
+Ce poly accompagne un cours d'économie de l'électricité : fonctionnement des
+marchés, formation des prix, investissement et régulation. Il contient
+l'ensemble des modules du cours ; chaque format (3h, 6h, 12h) n'en présente
+qu'une partie en séance, et renvoie aux chapitres utiles.
+
+Les développements mathématiques sont placés dans des encadrés
+« Formalisation », repliés par défaut dans la version en ligne. Le texte
+principal se lit sans eux.
+
+::: {.callout-warning}
+Version de travail : la refonte du cours est en cours et la plupart des
+chapitres restent à rédiger.
+:::
+
+Le contenu est diffusé sous licence CC BY-SA 4.0, le code sous licence MIT.

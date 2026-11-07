@@ -1,0 +1,23 @@
+# Brouillon, à valider. Format type 6h, d'après organisation-du-cours.md (section 5) :
+# les modules du 3h en version complète, plus l'architecture des marchés et le TP court terme.
+# Point ouvert : représentation des TP dans les parcours (séance dédiée, durée).
+titre: Économie des marchés de l'électricité
+formalisme: formel
+seances:
+  - titre: Le système électrique et le cadre d'analyse
+    duree: 90
+    modules:
+      - systeme: complet
+      - cadre: essentiel
+  - titre: Équilibre de court terme
+    duree: 90
+    modules:
+      - court-terme: complet
+  - titre: Équilibre de long terme
+    duree: 90
+    modules:
+      - long-terme: complet
+  - titre: Architecture des marchés
+    duree: 90
+    modules:
+      - architecture-marches: complet

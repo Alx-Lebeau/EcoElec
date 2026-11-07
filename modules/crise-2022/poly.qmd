@@ -1,0 +1,7 @@
+# Cas d'application : la crise de 2022 {#sec-crise-2022}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::

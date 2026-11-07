@@ -1,0 +1,41 @@
+# Module d'exemple : un merit order {#sec-exemple}
+
+{{< include /commun/_macros.qmd >}}
+
+Chapitre de démonstration, hors du poly : il montre la forme attendue d'un
+chapitre. Le texte est rédigé en prose continue ; les développements
+mathématiques vont dans des encadrés « Formalisation ».
+
+```{python}
+#| label: fig-offre-exemple-poly
+#| fig-cap: "Courbe d'offre d'un système illustratif"
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from pyelec import DATA_DIR, style
+from pyelec.figures import merit_order
+
+style.use()
+parc = pd.read_csv(DATA_DIR / "exemple" / "merit-order-illustratif.csv")
+fig, ax = plt.subplots()
+prix = merit_order(ax, parc, demand=125)
+style.add_source(fig, "valeurs illustratives du TP 01", "2024")
+plt.show()
+```
+
+Sur la @fig-offre-exemple-poly, le prix d'équilibre est fixé par le coût
+variable de la dernière filière appelée.
+
+::: {.formalisation titre="Le prix comme multiplicateur"}
+Le planificateur résout
+
+$$
+\min_{p_{i}} \; \sum_{i \in \Filieres} \CV_i \, p_i
+\quad \text{s.c.} \quad
+\sum_{i \in \Filieres} p_i = d \quad (\lambda),
+\qquad 0 \le p_i \le \Pmax_i .
+$$
+
+À l'optimum, le multiplicateur $\lambda$ de la contrainte d'équilibre égale le
+coût variable de la filière marginale.
+:::

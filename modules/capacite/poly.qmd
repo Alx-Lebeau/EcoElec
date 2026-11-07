@@ -1,0 +1,7 @@
+# Capacité {#sec-capacite}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger.
+:::
