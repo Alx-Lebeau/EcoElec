@@ -47,6 +47,16 @@ jobs:
       - name: Vérifier modules et parcours, générer les decks
         run: uv run ecoelec generer
 
+      # Résultats de calcul (freeze) : non versionnés, conservés d'une exécution à
+      # l'autre tant que le code, les données et les sources ne changent pas.
+      # Pas de restore-keys : un cache partiel pourrait servir des résultats
+      # périmés aux chapitres du poly, qui n'ont pas d'empreinte.
+      - name: Cache des résultats de calcul
+        uses: actions/cache@v4
+        with:
+          path: _freeze
+          key: freeze-${{ hashFiles('uv.lock', 'pyelec/**', 'data/**', 'modules/**', 'parcours/**', 'commun/**', 'outils/**', 'index.qmd', '_quarto*.yml') }}
+
       - name: Poly (HTML + PDF)
         run: uv run quarto render --profile poly 2>&1 | tee poly.log
 

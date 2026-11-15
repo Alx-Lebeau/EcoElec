@@ -40,7 +40,7 @@ outils/                commande `ecoelec` : vérification des parcours, généra
 data/                  petits jeux de données ouverts et scripts de téléchargement
 tests/                 tests de l'outillage
 decks/                 decks générés par `ecoelec generer` (non versionnés)
-_freeze/               résultats de calcul en cache (versionnés)
+_freeze/               résultats de calcul en cache (non versionnés)
 ```
 
 ## Installation

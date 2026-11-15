@@ -7,8 +7,9 @@
 /*.aux
 /*.toc
 
-# Copie des bibliothèques reveal.js faite par freeze (régénérée à chaque rendu)
-/_freeze/site_libs/
+# Résultats de calcul en cache (freeze) : locaux, et mis en cache par la CI
+# (actions/cache) plutôt que versionnés, pour ne pas alourdir l'historique.
+/_freeze/
 
 # Decks générés par `ecoelec generer` (à partir de modules/ et parcours/)
 /decks/

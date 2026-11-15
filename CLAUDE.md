@@ -46,7 +46,7 @@ fournit le Python du projet.
 | `outils/` | commande `ecoelec` |
 | `data/` | petits jeux de données ouverts par thème, documentés dans `data/README.md` |
 | `decks/` | **généré** par `ecoelec generer`, non versionné : ne jamais l'éditer |
-| `_freeze/` | résultats de calcul en cache, versionnés |
+| `_freeze/` | résultats de calcul en cache, non versionnés (cache de la CI) |
 
 ## Modules
 
@@ -162,6 +162,11 @@ logos d'entreprises). Voir `data/README.md`.
   (fichiers inclus, `pyelec/`, `data/`), donc toute modification de l'une d'elles
   le fait réexécuter. Les chapitres du poly n'en ont pas : après une modification
   de `pyelec/` ou `data/`, supprimer `_freeze/modules/<id>/` ou rendre le chapitre seul.
+- **`_freeze/` n'est pas versionné** (historique alourdi par les PNG à chaque
+  retouche). La CI le conserve avec `actions/cache`, clé calculée sur le code, les
+  données et les sources : tout changement relance les calculs. Ne pas le commiter ;
+  seule exception envisageable, un document au calcul long (optimisation), dont on
+  versionnerait le seul dossier `_freeze`.
 - `commun/_macros.qmd` ne contient que des `\providecommand` : tout autre contenu
   apparaîtrait dans les documents.
 - Le profil `slides` est un projet *website* (bibliothèques partagées) ; son
