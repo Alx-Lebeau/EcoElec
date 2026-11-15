@@ -1,3 +1,575 @@
-## À rédiger
+## Que voit-on ?
 
-Module en ébauche.
+```{python}
+#| fig-align: center
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from pyelec import DATA_DIR, style
+from pyelec.figures import capacity_and_production, load_variability, sector_donut
+from pyelec.lois import physical_laws
+from pyelec.organisation import ACTOR_COLORS, market_overview, two_circuits
+from pyelec.organisation import new_figure as new_orga_figure
+from pyelec.schema import ACCENTS, grid_diagram, new_figure
+
+style.use()
+
+fig, ax = new_figure()
+grid_diagram(ax)
+plt.show()
+```
+
+::: {.notes}
+Laisser le public décrire le schéma avant toute explication. Questions possibles :
+
+- Quels objets reconnaît-on ? Lesquels produisent, lesquels consomment ?
+- Pourquoi des bandes horizontales ? Qu'est-ce qui change d'une bande à l'autre ?
+- Pourquoi les grosses centrales sont-elles en haut et les maisons en bas ?
+- Le réseau a-t-il la même forme en haut et en bas ?
+- Que se passe-t-il à droite, après les pointillés ?
+:::
+
+## Un système physique
+
+```{python}
+#| fig-align: center
+fig, ax = new_figure()
+grid_diagram(ax, labels=True)
+plt.show()
+```
+
+::: {.notes}
+Trois composantes, de l'amont à l'aval, détaillées dans les slides suivantes :
+
+- la production, raccordée en haut (grandes centrales) comme en bas (éolien, solaire) ;
+- le réseau, à plusieurs niveaux de tension reliés par des postes, interconnecté avec les voisins ;
+- la consommation, raccordée à tous les niveaux selon la taille du consommateur.
+:::
+
+## Un système régi par les lois de la physique
+
+::: {.figure-large}
+```{python}
+fig = plt.figure(figsize=(10, 3.5))
+physical_laws(fig)
+plt.show()
+```
+:::
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+**Équilibre** : un écart fait dévier la fréquence ; trop loin de 50 Hz, les
+protections déconnectent centrales et consommateurs.
+[$\sum \text{injections}(t) = \sum \text{soutirages}(t) \;\; \forall t$]{.formel}
+:::
+::: {.column width="50%"}
+**Lois de Kirchhoff** : les flux se répartissent selon les caractéristiques des
+lignes ; on ne choisit pas où passe l'électricité.
+:::
+::::
+
+::: {.notes}
+L'équilibre n'est pas une question de qualité de service : c'est une condition de
+fonctionnement. Les machines synchrones tournent à une vitesse liée à la fréquence ;
+si la fréquence s'écarte trop, leurs protections les déconnectent, ce qui aggrave
+le déséquilibre. Ordres de grandeur (codes de réseau européens) : écarts normaux de
+quelques dizaines de millihertz, délestage automatique de consommateurs à partir de
+49 Hz, déconnexion des groupes de production vers 47,5 Hz : c'est le black-out.
+
+Stockage : « l'électricité ne se stocke pas » est faux (STEP, batteries). C'est le
+réseau qui ne stocke rien ; un stockage est un soutirage quand il se charge, une
+injection quand il se décharge.
+
+Kirchhoff : conséquence majeure pour l'économie, un contrat entre A et B ne dit
+rien du chemin physique ; les flux de bouclage passent par les lignes et les pays
+voisins (congestion, couplage des marchés).
+:::
+
+## La production : des filières différentes
+
+```{python}
+#| fig-align: center
+#| classes: schema-focus
+fig, ax = new_figure()
+grid_diagram(ax, labels=True, highlight={"production": None})
+plt.show()
+```
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+**Plusieurs filières** : nucléaire, hydraulique, gaz, éolien, solaire…
+:::
+::: {.column width="50%"}
+**Elles diffèrent** par leur énergie primaire, leurs coûts, leur disponibilité
+et leur pilotabilité.
+:::
+::::
+
+::: {.notes}
+Faire nommer les filières par le public, puis demander ce qui les distingue.
+:::
+
+## Le mix électrique français {.approfondissement}
+
+::: {.figure-large}
+```{python}
+mix = pd.read_csv(DATA_DIR / "mix" / "mix-france.csv")
+annee_mix = mix["annee"].max()
+mix = mix[mix["annee"] == annee_mix]
+
+fig = plt.figure(figsize=(9.5, 3.0), layout="constrained")
+capacity_and_production(fig, mix)
+style.add_source(fig, "RTE, parc et production par filière (via ODRÉ)", str(annee_mix))
+plt.show()
+```
+:::
+
+```{python}
+fc = mix.set_index("filiere")
+fc = fc["production_twh"] / (fc["capacite_gw"] * 8.76)
+
+
+def pct(filiere):
+    return f"{fc[filiere] * 100:.0f} %"
+```
+
+::: {.sous-schema}
+**Puissance** (GW) : ce que le parc peut produire à un instant. **Énergie** (TWh) :
+ce qu'il produit sur l'année. **Facteur de charge** : énergie produite rapportée
+au maximum possible (puissance × 8 760 h) ; nucléaire `{python} pct("nucleaire")`,
+éolien `{python} pct("eolien")`, solaire `{python} pct("solaire")`.
+[$\text{FC} = \dfrac{E}{P \times 8\,760\ \text{h}}$]{.formel}
+:::
+
+::: {.notes}
+Faire comparer les deux panneaux : le solaire a plus de capacité que l'hydraulique
+ou l'éolien, mais produit moins ; le facteur de charge l'explique (ensoleillement,
+nuit). Le facteur de charge dépend de la ressource, de la disponibilité et des
+choix de production : un nucléaire qui module a un facteur de charge plus bas.
+
+Calcul approché : capacité au 31 décembre ; pour une filière en forte croissance
+(solaire), il sous-estime le facteur de charge réel.
+
+La production dépasse la consommation : la France exporte.
+:::
+
+## Ce qui distingue les filières {.approfondissement}
+
+:::: {.columns}
+::: {.column width="50%"}
+**Énergie primaire**
+
+uranium, eau, gaz, vent, soleil…
+
+**Structure de coûts**
+
+plus ou moins de coûts fixes (investissement) et de coûts variables
+(combustible) : on y reviendra
+:::
+::: {.column width="50%"}
+**Disponibilité**
+
+aucune filière n'est disponible 100 % du temps : maintenances, pannes ;
+certaines dépendent de la ressource (hydraulique au fil de l'eau, éolien, solaire)
+
+**Pilotabilité**
+
+plus ou moins pilotables : délai de démarrage, vitesse de variation de la
+puissance ; même l'éolien et le solaire peuvent baisser leur production
+:::
+::::
+
+::: {.notes}
+Rester qualitatif et nuancé : la pilotabilité est une question de degré, pas
+une opposition entre filières pilotables et non pilotables. Éviter le débat sur
+l'« intermittence » : parler de disponibilité, qui concerne toutes les filières.
+
+Propriétés à reprendre plus tard : machines synchrones et inertie, rampes,
+contraintes de fonctionnement du nucléaire.
+:::
+
+## Production centralisée et décentralisée {.approfondissement}
+
+```{python}
+#| fig-align: center
+#| classes: schema-focus
+fig, ax = new_figure()
+grid_diagram(
+    ax,
+    labels=True,
+    highlight={
+        "production-centralisee": ACCENTS["transport"],
+        "production-decentralisee": ACCENTS["distribution"],
+    },
+)
+plt.show()
+```
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+[**Centralisée**]{.transport} : grandes unités raccordées au réseau de transport
+:::
+::: {.column width="50%"}
+[**Décentralisée**]{.distribution} : raccordée au réseau de distribution (éolien,
+solaire, autoproduction)
+:::
+::::
+
+::: {.attention}
+« Décentralisé » a d'autres sens : décisions prises au niveau des territoires,
+ou coordination par le marché plutôt que par un planificateur.
+:::
+
+::: {.notes}
+Insister sur l'ambiguïté du terme. Trois sens courants :
+
+- technique : raccordement au réseau de distribution (sens retenu ici) ;
+- territorial : gouvernance locale, collectivités, communautés d'énergie ;
+- économique : décisions dispersées entre de nombreux acteurs coordonnés par les
+  prix, par opposition à la planification centralisée.
+
+Le troisième sens reviendra avec la libéralisation.
+:::
+
+## Le réseau : transport et distribution
+
+```{python}
+#| fig-align: center
+#| classes: schema-focus
+fig, ax = new_figure()
+grid_diagram(
+    ax,
+    labels=True,
+    highlight={"transport": ACCENTS["transport"], "distribution": ACCENTS["distribution"]},
+)
+plt.show()
+```
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+[**Transport** : très haute et haute tension]{.transport}
+
+- maillé : plusieurs chemins entre deux nœuds, une ligne peut tomber sans couper personne
+- [flux répartis par la physique, pas par les contrats]{.approfondissement}
+:::
+::: {.column width="50%"}
+[**Distribution** : moyenne et basse tension]{.distribution}
+
+- arborescente : un seul chemin depuis le poste source, moins coûteux, mais une panne coupe l'aval
+:::
+::::
+
+::: {.notes}
+Le maillage garantit la sécurité d'alimentation : le réseau de transport est
+dimensionné pour supporter la perte de n'importe quel ouvrage (règle du « N-1 »).
+
+L'arborescence a été conçue pour des flux descendants, du poste source vers les
+consommateurs. Avec la production raccordée en distribution, les flux peuvent
+remonter.
+
+Interconnexions : le réseau français est relié à ceux de ses voisins ; les
+échanges reviendront avec le couplage des marchés.
+:::
+
+## Pourquoi plusieurs niveaux de tension ? {.approfondissement}
+
+- Transporter loin et en grande quantité : très haute tension, pertes réduites.
+- Livrer à chacun : tension abaissée par étapes, jusqu'aux 230 V domestiques.
+
+::: {.intuitif}
+À puissance transportée égale, élever la tension réduit le courant, donc
+l'échauffement des câbles et les pertes.
+:::
+
+::: {.formel}
+Une ligne de résistance $R$ transporte une puissance $P = U I$. Les pertes
+par effet Joule valent
+
+$$
+R I^2 = R \, \frac{P^2}{U^2} :
+$$
+
+à puissance donnée, elles décroissent comme le carré de la tension.
+:::
+
+## La consommation : des consommateurs à tous les niveaux
+
+```{python}
+#| fig-align: center
+#| classes: schema-focus
+fig, ax = new_figure()
+grid_diagram(ax, labels=True, highlight={"consommation": ACCENTS["consommation"]})
+plt.show()
+```
+
+:::: {.columns .sous-schema}
+::: {.column width="33%"}
+**Haute tension** : grands sites industriels
+:::
+::: {.column width="33%"}
+**Moyenne tension** : tertiaire, PME
+:::
+::: {.column width="33%"}
+**Basse tension** : ménages, petits professionnels
+:::
+::::
+
+::: {.notes}
+Plus le consommateur est gros, plus il est raccordé haut. Le niveau de
+raccordement détermine aussi le tarif de réseau payé (module réseaux).
+:::
+
+## Qui consomme ?
+
+```{python}
+conso = pd.read_csv(DATA_DIR / "consommation" / "conso-electricite-secteur.csv")
+annee = conso["annee"].max()
+derniere = conso[conso["annee"] == annee].set_index("secteur")["consommation_twh"]
+part = derniere / derniere.sum()
+```
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+fig, ax = plt.subplots(figsize=(6, 4.5))
+sector_donut(ax, derniere)
+style.add_source(fig, "SDES, données locales de consommation (via ODRÉ)", str(annee))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+- **Résidentiel et tertiaire** : `{python} f"{part['residentiel'] + part['tertiaire']:.0%}".replace("%", " %")`
+  de la consommation ; chauffage, eau chaude, éclairage, appareils.
+- **Industrie** : procédés, moteurs, électrochimie.
+:::
+::::
+
+::: {.notes}
+Consommation finale livrée aux sites, hors pertes de réseau : le total est
+inférieur à la consommation nationale publiée par RTE.
+
+Questions possibles : quand la consommation est-elle la plus forte dans l'année ?
+dans la journée ? Transition vers la courbe de charge.
+:::
+
+## Une consommation variable
+
+::: {.figure-large}
+```{python}
+annee_courbe = 2025  # fichiers produits par data/consommation/telecharger_courbe.py
+courbe = pd.read_csv(DATA_DIR / "consommation" / f"courbe-charge-{annee_courbe}.csv")
+temperature = pd.read_csv(DATA_DIR / "consommation" / f"temperature-{annee_courbe}.csv")
+fig = plt.figure(figsize=(10, 3.9))
+thermo = load_variability(fig, courbe, temperature)
+style.add_source(
+    fig,
+    "RTE, éCO2mix ; Weathernews France, températures régionales (via ODRÉ)",
+    str(annee_courbe),
+)
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+**Thermosensibilité** : l'hiver, environ `{python} f"{thermo:.1f}".replace(".", ",")` GW
+de plus par degré en moins (chauffage électrique).
+:::
+
+::: {.notes}
+Trois échelles de variation : saisonnière (hiver, été), hebdomadaire (jours ouvrés,
+week-end), journalière (jour, nuit, pointe du soir en hiver). La thermosensibilité
+française est l'une des plus fortes d'Europe, à cause du chauffage électrique.
+
+Conséquence : il faut des moyens de production pour la pointe d'hiver, qui
+tournent peu le reste de l'année : on y reviendra avec le long terme.
+
+Pente estimée sur les jours ouvrés de moins de 15 °C (régression linéaire) ;
+température moyenne des régions, non pondérée : ordre de grandeur seulement.
+:::
+
+## Avant la libéralisation : un monopole intégré
+
+```{python}
+#| fig-align: center
+#| classes: schema-focus
+fig, ax = new_figure()
+integre = ACCENTS["integre"]
+grid_diagram(
+    ax,
+    labels=True,
+    highlight={"production": integre, "transport": integre, "distribution": integre,
+               "consommation": None},
+)
+plt.show()
+```
+
+::: {.sous-schema}
+Un **opérateur national** assure toute la chaîne, en monopole : en France, EDF,
+créée en 1946. Les tarifs sont fixés par la puissance publique.
+:::
+
+::: {.notes}
+Modèle dominant en Europe jusqu'aux années 1990 : entreprise publique verticalement
+intégrée, planification des investissements, tarifs réglementés. En France, la loi
+de nationalisation de 1946 crée EDF (quelques régies locales subsistent : les
+entreprises locales de distribution).
+
+Question au public : quels avantages, quels inconvénients ?
+:::
+
+## Après la libéralisation : concurrence et monopoles régulés
+
+```{python}
+#| fig-align: center
+#| classes: schema-focus
+fig, ax = new_figure()
+grid_diagram(
+    ax,
+    labels=True,
+    highlight={
+        "production": ACCENTS["production"],
+        "transport": ACCENTS["transport"],
+        "distribution": ACCENTS["distribution"],
+        "consommation": ACCENTS["consommation"],
+    },
+)
+plt.show()
+```
+
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+[**Ouvertes à la concurrence**]{.concurrence} : la production et la vente aux
+consommateurs (fourniture)
+:::
+::: {.column width="50%"}
+[**Monopoles régulés**]{.transport} : les réseaux de transport (RTE) et de
+distribution (Enedis, entreprises locales), sous le contrôle de la CRE
+:::
+::::
+
+::: {.notes}
+Les réseaux restent des monopoles naturels, régulés ; la production et la
+fourniture sont ouvertes à la concurrence. La fourniture est une activité
+commerciale : elle n'apparaît pas sur le schéma physique.
+
+Repères (directives européennes, transposées en France) : directive de 1996,
+loi du 10 février 2000 (création de la CRE et de RTE), ouverture totale de la
+fourniture au 1^er^ juillet 2007. Les détails de l'organisation des marchés
+sont traités dans le module sur le market design européen.
+:::
+
+## Flux physiques, flux contractuels
+
+::: {.figure-large}
+```{python}
+fig, ax = new_orga_figure(10, 5.625)
+two_circuits(ax)
+plt.show()
+```
+:::
+
+::: {.notes}
+Le circuit physique ne dépend pas des contrats : l'électricité suit les lois de la
+physique, quel que soit le fournisseur choisi. Le circuit contractuel organise qui
+vend à qui et à quel prix.
+
+Le fournisseur achète l'énergie sur le marché de gros (ou la produit), la revend
+aux consommateurs sur le marché de détail, et paie l'acheminement aux gestionnaires
+de réseau pour le compte de ses clients.
+:::
+
+## De l'amont à l'aval : qui pèse quoi ?
+
+```{python}
+acteurs = pd.read_csv(DATA_DIR / "acteurs" / "production-par-acteur.csv")
+annee_prod = acteurs["annee"].max()
+mix_total = pd.read_csv(DATA_DIR / "mix" / "mix-france.csv")
+total = mix_total.loc[mix_total["annee"] == annee_prod, "production_twh"].sum()
+acteurs = acteurs[acteurs["annee"] == annee_prod].set_index("acteur")["production_twh"]
+part = acteurs / total
+part_autres = 1 - part.sum()
+part_edf = part["EDF nucléaire"] + part["EDF hydraulique"]
+
+detail = pd.read_csv(DATA_DIR / "acteurs" / "marche-detail-electricite.csv")
+date_detail = pd.to_datetime(detail["date"].max())
+mois_detail = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+               "septembre", "octobre", "novembre", "décembre"][date_detail.month - 1]
+detail = detail.set_index("indicateur")["valeur"]
+alternatifs = detail["part_consommation_fournisseurs_alternatifs"] / 100
+```
+
+::: {.figure-large}
+```{python}
+fig = plt.figure(figsize=(10, 4.0))
+c = ACTOR_COLORS
+market_overview(
+    fig,
+    [
+        (
+            f"Production en France ({annee_prod})",
+            [
+                ("Nucléaire", part["EDF nucléaire"], c["edf"]),
+                ("Hydraulique", part["EDF hydraulique"], c["edf-clair"]),
+                ("CNR", part["CNR"], c["cnr"]),
+                ("Autres producteurs", part_autres, c["autres"]),
+            ],
+        ),
+        (
+            f"Fourniture : part de la consommation ({mois_detail} {date_detail.year})",
+            [
+                ("Historiques : EDF, entreprises locales", 1 - alternatifs, c["edf"]),
+                ("Alternatifs : Engie, TotalEnergies…", alternatifs, c["alternatifs"]),
+            ],
+        ),
+    ],
+    groups=[(0, f"EDF : au moins {part_edf * 100:.0f} %", 0, 1)],
+)
+style.add_source(
+    fig,
+    "RTE, EDF, CNR (production) ; CRE, observatoire des marchés de détail (fourniture)",
+    str(date_detail.year),
+)
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+**Amont très concentré** autour d'EDF ; **aval plus concurrentiel**.
+:::
+
+::: {.notes}
+Production : EDF exploite tout le nucléaire et l'essentiel de l'hydraulique ; la
+CNR (actionnaire principal : Engie) exploite les barrages du Rhône. Le reste
+(éolien, solaire, gaz, bioénergies) se partage entre de nombreux producteurs :
+Engie, TotalEnergies, développeurs d'énergies renouvelables, et aussi EDF, dont
+la production éolienne, solaire et thermique en France n'est pas publiée à part
+(la part d'EDF est donc un minimum).
+
+Fourniture : les fournisseurs historiques (EDF et entreprises locales de
+distribution) gardent un peu plus de la moitié de la consommation, et une grande
+partie des ménages (tarif réglementé :
+`{python} f"{detail['sites_residentiels_trve']:.1f}".replace(".", ",")` millions de sites).
+:::
+
+## À retenir
+
+::: {.a-retenir}
+1. **Un système physique, une organisation** : le même réseau peut être géré par un
+   monopole intégré ou organisé autour de marchés.
+2. **La physique commande** : injections et soutirages s'égalisent à chaque instant ;
+   les flux suivent les lois de Kirchhoff, pas les contrats.
+3. **Une demande variable**, sensible à la température, servie par des filières aux
+   propriétés différentes : coûts, disponibilité, pilotabilité.
+4. **En Europe, un système libéralisé** : production et fourniture en concurrence,
+   via les marchés de gros et de détail ; réseaux en monopoles régulés.
+5. **En France**, un amont très concentré autour d'EDF, un aval plus concurrentiel.
+:::
+
+::: {.notes}
+Faire reformuler par le public avant d'afficher, si le temps le permet.
+
+Fil conducteur pour la suite : comment des marchés peuvent-ils respecter les
+contraintes physiques (équilibre à chaque instant, réseau) et rémunérer des
+filières aux coûts différents ?
+:::

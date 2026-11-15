@@ -42,9 +42,9 @@ fournit le Python du projet.
 | `modules/<id>/` | `module.yml`, `poly.qmd` (chapitre), `slides.qmd` (slides marquées), `tp/` |
 | `modules/_exemple/` | module de démonstration des marques, hors poly et parcours, rendu par la CI |
 | `parcours/*.yml` | un parcours par format type ou par session réelle |
-| `pyelec/` | code partagé : chemins, palette et libellés des filières, style, figures |
+| `pyelec/` | code partagé : chemins, palette, style, figures, schémas (`schema`, `organisation`, `lois`) |
 | `outils/` | commande `ecoelec` |
-| `data/` | petits jeux de données ouverts, documentés dans `data/README.md` |
+| `data/` | petits jeux de données ouverts par thème, documentés dans `data/README.md` |
 | `decks/` | **généré** par `ecoelec generer`, non versionné : ne jamais l'éditer |
 | `_freeze/` | résultats de calcul en cache, versionnés |
 
@@ -64,7 +64,9 @@ tp: [tp-court-terme]          # notebooks modules/<id>/tp/<tp>.ipynb
 ```
 
 - Un module n'a ni introduction ni conclusion générales : elles appartiennent au
-  parcours (clés `introduction` et `conclusion` d'une séance).
+  parcours (clés `introduction` et `conclusion` d'une séance). Il se termine en
+  revanche par une slide « À retenir » propre au module (`::: {.a-retenir}` autour
+  d'une liste numérotée).
 - `poly.qmd` commence par `# Titre {#sec-<id>}` puis l'inclusion des macros.
   Tout nouveau chapitre est ajouté à la liste de `_quarto-poly.yml` (`ecoelec verifier` le contrôle).
 - `slides.qmd` ne contient que des slides `##`, sans en-tête YAML : le générateur
@@ -87,7 +89,10 @@ tp: [tp-court-terme]          # notebooks modules/<id>/tp/<tp>.ipynb
   rend les quatre versions de chaque module et échoue sur tout renvoi non résolu.
 - Le formalisme s'ajoute à l'intuition : graphique et raisonnement communs, maths en surcouche.
 - Vérifier dans la vue auteur (`_rendu/slides/decks/modules/<id>/auteur.html`) que
-  le discours tient dans chaque version.
+  le discours tient dans chaque version, et dans chaque version qu'aucune slide ne
+  déborde à 1280 × 720 (taille de projection).
+- Mise en page : classes de `commun/slides.scss` (`schema-focus`, `sous-schema`,
+  `figure-large`, `attention`, `a-retenir`), décrites dans `commun/README.md`.
 
 Poly : pas de marques. Les développements mathématiques vont dans
 `::: {.formalisation titre="…"}` (encadré replié en HTML).
@@ -115,8 +120,12 @@ parcours, une page des séances avec les chapitres du poly à lire.
   docstrings et messages en français. Noms de dossiers et sous-commandes en français.
 - Chemins : toujours `pyelec.DATA_DIR` / `pyelec.ROOT`, jamais de chemin relatif
   (les documents s'exécutent depuis des dossiers différents).
-- Couleurs et libellés des filières : `pyelec.color()` et `pyelec.label()` uniquement.
-- Figures : `pyelec.style.use()`, puis `style.add_source(fig, source, date)` sous chaque figure.
+- Couleurs et libellés des filières : `pyelec.color()` et `pyelec.label()` uniquement ;
+  couleurs de mise en évidence des schémas : `pyelec.schema.ACCENTS`.
+- Schéma du système électrique : `pyelec.schema.grid_diagram`, recoloré avec
+  `highlight` plutôt que redessiné.
+- Figures : `pyelec.style.use()`, puis `style.add_source(fig, source, date)` sous chaque figure
+  de données (pas sous les schémas de principe).
 - Code réutilisé d'un module à l'autre : dans `pyelec`, pas copié dans les documents.
 - Optimisation : PuLP avec HiGHS.
 - `uv run ruff check . && uv run ruff format .` avant de valider.
@@ -136,7 +145,13 @@ parcours, une page des séances avec les chapitres du poly à lire.
 ## Données et publication
 
 Le dépôt deviendra public : ni données internes, ni données sous licence
-restrictive (EPEX, EEX), ni contenus d'autres personnes sans leur accord. Voir `data/README.md`.
+restrictive (EPEX, EEX), ni contenus d'autres personnes sans leur accord (pas de
+logos d'entreprises). Voir `data/README.md`.
+
+- Données ouvertes (ODRÉ, éCO2mix) : un script `data/<thème>/telecharger.py`
+  régénère le fichier versionné.
+- Chiffres saisis à la main depuis un rapport (CRE, entreprises) : dans un CSV de
+  `data/`, avec source, date et précautions dans `data/README.md` ; jamais dans la slide.
 
 ## Points techniques
 

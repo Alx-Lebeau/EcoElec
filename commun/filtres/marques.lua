@@ -160,6 +160,50 @@ local nested = {
   end,
 }
 
+-- Après suppression d'un passage ou d'un bloc marqué : retire les paragraphes
+-- devenus vides, puis les éléments de liste vides (sinon une puce reste seule),
+-- puis les listes vides. Parcours ascendant : les paragraphes d'abord.
+local function is_blank(inlines)
+  for _, il in ipairs(inlines) do
+    if il.t ~= "Space" and il.t ~= "SoftBreak" and il.t ~= "LineBreak" then
+      return false
+    end
+  end
+  return true
+end
+
+local function drop_blank(blk)
+  if is_blank(blk.content) then
+    return {}
+  end
+end
+
+local function prune_items(l)
+  local items = pandoc.List()
+  for _, item in ipairs(l.content) do
+    if #item > 0 then
+      items:insert(item)
+    end
+  end
+  if #items == 0 then
+    return {}
+  end
+  l.content = items
+  return l
+end
+
+local cleanup = {
+  Para = drop_blank,
+  Plain = drop_blank,
+  BulletList = prune_items,
+  OrderedList = prune_items,
+}
+
+-- Applique les marques imbriquées à un bloc ordinaire, puis nettoie.
+local function process_nested(b)
+  return pandoc.Blocks({ b }):walk(nested):walk(cleanup)
+end
+
 process_blocks = function(blocks)
   local out = pandoc.Blocks({})
   local skip_level = nil -- niveau du titre de la slide marquée en cours de suppression
@@ -197,7 +241,7 @@ process_blocks = function(blocks)
     elseif b.t == "Div" then
       out:extend(pandoc.Blocks(handle_div(b)))
     else
-      out:insert(b:walk(nested))
+      out:extend(process_nested(b))
     end
   end
   return out

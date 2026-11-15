@@ -107,6 +107,34 @@ def test_author_view_keeps_everything_with_visible_marks():
         assert mark in out
 
 
+LIST = """\
+::: {{.ecoelec-module module="m" profondeur="{depth}" formalisme="intuitif" manquants=""}}
+:::
+
+## Liste
+
+- premier point
+- [point approfondi]{{.approfondissement}}
+- dernier point
+
+Paragraphe[ approfondi]{{.approfondissement}}.
+
+- [seul point approfondi]{{.approfondissement}}
+"""
+
+
+def test_no_empty_bullet_when_item_hidden():
+    out = render("marques.lua", LIST.format(depth="essentiel"))
+    assert "point approfondi" not in out
+    assert "premier point" in out and "dernier point" in out
+    lines = [line.strip() for line in out.splitlines()]
+    assert "-" not in lines  # aucune puce vide
+    assert out.count("- ") == 2  # la liste entièrement masquée disparaît
+    assert "Paragraphe." in out
+    full = render("marques.lua", LIST.format(depth="complet"))
+    assert "point approfondi" in full and full.count("- ") == 4
+
+
 def test_formalisation_box():
     md = '::: {.formalisation titre="Dualité"}\nDéveloppement.\n:::\n'
     out = render("formalisation.lua", md, to="html")

@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 
 # Taille et résolution des figures : laissées à Quarto (fig-width, fig-height, fig-dpi).
 RC_PARAMS = {
+    # Même famille que le thème des slides ; repli sur DejaVu Sans si absente.
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica Neue", "Helvetica", "Arial", "DejaVu Sans"],
     "font.size": 12,
     "axes.titlesize": 13,
     "axes.titleweight": "bold",

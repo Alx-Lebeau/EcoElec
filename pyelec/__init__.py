@@ -1,8 +1,15 @@
 """Code partagé du cours d'économie de l'électricité.
 
-Utilisé par le poly, les slides et les notebooks : chemins du projet, palette
-des filières, style des figures. Les briques de modélisation (merit order,
-dispatch, investissement) arriveront avec la migration des modules.
+Utilisé par le poly, les slides et les notebooks :
+
+- `paths`, `palette`, `style` : chemins du projet, couleurs et libellés, style des figures ;
+- `figures` : figures de données (merit order, mix, consommation) ;
+- `schema` : schéma du système électrique, recoloré par groupes d'éléments ;
+- `organisation` : flux physiques et contractuels, chaîne amont-aval, parts de marché ;
+- `lois` : équilibre injections-soutirages et répartition des flux (Kirchhoff).
+
+Les briques de modélisation (dispatch, investissement) arriveront avec la
+migration des modules.
 """
 
 from pyelec.palette import COLORS, LABELS, color, label

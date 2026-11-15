@@ -23,6 +23,74 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
   (« fil rouge »), qui reste à définir.
 - **Licence** : CC BY-SA 4.0.
 
+### `consommation/conso-electricite-secteur.csv`
+
+- **Contenu** : consommation finale d'électricité en France par secteur
+  (résidentiel, tertiaire, industrie, agriculture, non affecté), en TWh, de 2012 à 2024.
+- **Source** : ODRÉ, jeu « Consommation départementale annuelle », construit à partir
+  des données locales de consommation du SDES (réseaux RTE, Enedis, entreprises
+  locales de distribution, EDF-SEI pour les outre-mer).
+- **Traitements** : somme des départements par année et par secteur, MWh → TWh
+  (`consommation/telecharger.py` régénère le fichier).
+- **Précautions** : consommation livrée aux sites, hors pertes et hors secteur
+  de l'énergie, donc inférieure à la consommation nationale publiée par RTE
+  (environ 410 TWh contre 449 TWh en 2024). Rupture de série en 2018 (une partie
+  du résidentiel reclassée en tertiaire) : comparer les années avec prudence.
+- **Licence** : Licence Ouverte v2.0 (Etalab).
+
+### `mix/mix-france.csv`
+
+- **Contenu** : capacité installée au 31 décembre (GW) et production annuelle (TWh)
+  par filière en France, de 2012 à la dernière année publiée.
+- **Source** : RTE, jeux ODRÉ « Parc national annuel de production par filière » et
+  « Production nationale annuelle par filière ». Toutes installations raccordées aux
+  réseaux publics (RTE, Enedis, EDF SEI, entreprises locales de distribution).
+- **Traitements** : MW → GW ; fioul et charbon regroupés (« charbon-fioul »)
+  ; `mix/telecharger.py` régénère le fichier.
+- **Précautions** : RTE a recalculé l'autoconsommation photovoltaïque ; le parc et
+  la production solaires de 2022 à 2024 ont été revus à la hausse. Les données de la
+  dernière année peuvent encore être révisées.
+- **Licence** : Licence Ouverte v2.0 (Etalab).
+
+### `acteurs/marche-detail-electricite.csv`
+
+- **Contenu** : indicateurs du marché de détail de l'électricité au 30 juin 2026 :
+  sites et consommation, parts des offres de marché et des fournisseurs alternatifs,
+  sites résidentiels aux tarifs réglementés, nombre de fournisseurs.
+- **Source** : CRE, *Observatoire des marchés de détail, deuxième trimestre 2026*
+  (30 septembre 2026), synthèse et figures 4 et 5 ; saisie manuelle.
+- **Précautions** : `fournisseurs_residentiels_min` compte les fournisseurs engagés
+  dans les lignes directrices de la CRE et actifs auprès des résidentiels (75, plus de
+  98 % des clients) : c'est un minimum. Les parts sont arrondies par la CRE.
+- **Mise à jour** : chaque trimestre, depuis l'observatoire suivant.
+
+### `acteurs/production-par-acteur.csv`
+
+- **Contenu** : production 2025 en France des principaux producteurs identifiables
+  (EDF nucléaire, EDF hydraulique, CNR), en TWh. Le reste de la production
+  (« autres producteurs ») se calcule par différence avec `mix/mix-france.csv`.
+- **Sources** : EDF, communiqué des résultats annuels 2025 (25 février 2026) ;
+  CNR, bilan 2025 rapporté par la presse (*LyonMag*, 2026) ; RTE pour le total.
+  Saisie manuelle.
+- **Précautions** : chiffres communiqués par les entreprises. La production éolienne,
+  solaire et thermique d'EDF en France n'est pas publiée séparément (le chiffre
+  « éolien et solaire » d'EDF couvre le groupe, hors de France compris) : elle est
+  comptée dans « autres producteurs », ce qui sous-estime la part d'EDF.
+
+### `consommation/courbe-charge-2025.csv` et `consommation/temperature-2025.csv`
+
+- **Contenu** : consommation nationale horaire en 2025 (GW, heure locale de Paris) ;
+  température moyenne quotidienne en 2025 (°C).
+- **Sources** : RTE, « Données éCO2mix nationales consolidées et définitives » ;
+  Weathernews France, « Température quotidienne régionale » (jeux ODRÉ).
+- **Traitements** : consommation au pas de 15 ou 30 minutes moyennée par heure, MW → GW ;
+  température : moyenne non pondérée des régions (ordre de grandeur, pas la
+  température de référence de RTE). `consommation/telecharger_courbe.py ANNÉE`
+  régénère les deux fichiers.
+- **Précautions** : quelques jours manquent dans les températures ; l'heure du
+  changement d'heure de printemps n'existe pas (8 759 heures).
+- **Licence** : Licence Ouverte v2.0 (Etalab).
+
 ## À migrer
 
 - Consommation France et disponibilités horaires 2024 des TP (source ENTSO-E

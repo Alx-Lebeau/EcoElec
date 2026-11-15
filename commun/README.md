@@ -29,3 +29,21 @@ Notations actuelles, reprises des TP 01 et 02 (à compléter au fil de la migrat
 | `\VOLL`, `\END` | VOLL, END | valeur de l'énergie non distribuée (€/MWh), énergie non distribuée (MW) |
 | `\Pmax` | $\overline{P}$ | capacité maximale (MW) |
 | `\unite{€/MWh}` | € /MWh | unité dans une formule |
+
+## Mise en page des slides
+
+Classes définies dans `slides.scss`, à utiliser dans les `slides.qmd` :
+
+| Classe | Usage |
+|---|---|
+| `#| classes: schema-focus` | cellule du schéma `pyelec.schema` recoloré : il reste collé sous le titre, à la même place d'une slide à l'autre |
+| `.sous-schema` | texte court sous un schéma ou une figure (taille réduite) |
+| `.figure-large` | figure étirée à toute la largeur, hauteur plafonnée |
+| `.attention` | mise en garde compacte (icône ⚠) |
+| `.a-retenir` | liste numérotée de la slide « À retenir » qui clôt chaque module |
+| `.transport`, `.distribution`, `.concurrence` | titre en gras coloré comme `pyelec.schema.ACCENTS` |
+
+Règles automatiques : contenu centré verticalement sous le titre (sauf schéma
+`schema-focus`), filet entre colonnes, images en colonnes non déformées.
+Les couleurs de `slides.scss` qui reprennent `ACCENTS` doivent rester alignées
+avec `pyelec/schema.py`.

@@ -1,0 +1,9 @@
+indicateur,valeur,unite,date
+sites_total,41.2,millions de sites,2026-06-30
+consommation_totale,417,TWh,2026-06-30
+part_sites_offre_marche,49,%,2026-06-30
+part_sites_fournisseurs_alternatifs,34,%,2026-06-30
+part_consommation_offre_marche,77,%,2026-06-30
+part_consommation_fournisseurs_alternatifs,47,%,2026-06-30
+sites_residentiels_trve,19.20,millions de sites,2026-06-30
+fournisseurs_residentiels_min,75,fournisseurs,2026-06-30

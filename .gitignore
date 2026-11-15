@@ -31,3 +31,6 @@ __pycache__/
 *.swp
 
 **/*.quarto_ipynb
+
+# Configuration locale de l’aperçu des slides (Claude Code)
+/.claude/launch.json
