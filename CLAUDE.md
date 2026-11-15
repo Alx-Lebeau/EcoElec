@@ -91,6 +91,8 @@ tp: [tp-court-terme]          # notebooks modules/<id>/tp/<tp>.ipynb
 - Vérifier dans la vue auteur (`_rendu/slides/decks/modules/<id>/auteur.html`) que
   le discours tient dans chaque version, et dans chaque version qu'aucune slide ne
   déborde à 1280 × 720 (taille de projection).
+- Parties d'un module : `## Titre {partie="Système physique"}` sur la première slide
+  de chaque partie (étiquette et barre de progression, filtre `parties.lua`).
 - Mise en page : classes de `commun/slides.scss` (`schema-focus`, `sous-schema`,
   `figure-large`, `attention`, `a-retenir`), décrites dans `commun/README.md`.
 

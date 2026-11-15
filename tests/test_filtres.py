@@ -150,3 +150,30 @@ def test_french_typography():
     assert 'Str "\\160"' in out  # insécable avant les deux-points
     assert 'Str "\\8239"' in out  # fine insécable
     assert '"a : b"' in out  # code intact
+
+
+PARTIES = """\
+::: {.ecoelec-module module="a"}
+:::
+
+## Un {partie="Physique"}
+
+## Deux
+
+## Trois {partie="Organisation"}
+
+::: {.ecoelec-module module="b"}
+:::
+
+## Quatre
+"""
+
+
+def test_parties_propagees_et_comptees():
+    out = render("parties.lua", PARTIES, to="native")
+    blocks = out.split("Header")
+    assert '"data-partie" , "Physique"' in blocks[1] and "--partie: 1; --parties: 2" in blocks[1]
+    assert '"data-partie" , "Physique"' in blocks[2]  # la partie se prolonge
+    assert "--partie: 2; --parties: 2" in blocks[3]
+    assert "data-partie" not in blocks[4]  # nouveau module : pas de partie
+    assert '( "partie"' not in out  # l'attribut d'origine est retiré

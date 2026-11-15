@@ -20,6 +20,8 @@ website:
         href: ../poly/index.html
 
 filters:
+  - path: commun/filtres/parties.lua
+    at: pre-ast
   - path: commun/filtres/marques.lua
     at: pre-ast
   - commun/filtres/typographie.lua
@@ -38,3 +40,5 @@ format:
     preview-links: auto
     fig-width: 8
     fig-height: 4.5
+    title-slide-attributes:
+      data-background-color: "#1e293b"

@@ -127,6 +127,7 @@ def _module_decks(root: Path, out: Path, module: Module) -> list[Path]:
             front = _front_matter(
                 title=module.title,
                 subtitle=_version_label(depth, formalism),
+                footer=module.title,
                 ecoelec={"vue": "version", "empreinte": fingerprint},
             )
             body = _module_body(module, depth, formalism, missing, section_title=False)
@@ -134,6 +135,7 @@ def _module_decks(root: Path, out: Path, module: Module) -> list[Path]:
     front = _front_matter(
         title=module.title,
         subtitle="Vue auteur",
+        footer=f"{module.title} — vue auteur",
         ecoelec={"vue": "auteur", "empreinte": fingerprint},
     )
     body = _module_body(module, "complet", "formel", missing, section_title=False)
@@ -152,6 +154,7 @@ def _session_deck(root: Path, track: Track, session: Session) -> str:
     front = _front_matter(
         title=session.title,
         subtitle=f"{track.title} — séance {session.number}",
+        footer=f"{track.title} — séance {session.number}",
         ecoelec={"vue": "version", "empreinte": _fingerprint(root, sources)},
     )
     blocks = []

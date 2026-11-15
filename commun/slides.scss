@@ -1,14 +1,174 @@
 /*-- scss:defaults --*/
 
-// Charte provisoire : à remplacer si l'établissement impose logo et couleurs.
+// Charte du cours : bleu nuit, bleu des titres, accent cyan « électrique ».
+// L'accent ne porte aucun sens : il est réservé à l'habillage (filets, étiquettes,
+// progression) et ne reprend aucune couleur des schémas ni des filières.
 // Polices système uniquement : aucun appel réseau, decks projetables hors connexion.
 $font-family-sans-serif: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$nuit: #1e293b;
+$accent: #0891b2;
+$accent-clair: #22d3ee;
+$gris-filet: #e2e8f0;
+$gris-texte: #94a3b8;
 $presentation-heading-color: #1f4e79;
 $link-color: #1f4e79;
 $presentation-font-size-root: 32px;
-$presentation-h2-font-size: 1.4em;
+$presentation-h2-font-size: 1.3em;
 
 /*-- scss:rules --*/
+
+// ---------------------------------------------------------------------------
+// Habillage : slide de titre, ouverture de module, titres, parties, pied de page
+// ---------------------------------------------------------------------------
+
+// Slide de titre : fond bleu nuit (data-background-color, _quarto-slides.yml),
+// réseau maillé en filigrane, titre en blanc, filet cyan.
+.reveal .slides section#title-slide {
+  text-align: left;
+  padding: 0 0 0 1em;
+}
+.reveal .slides section#title-slide::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 42%;
+  aspect-ratio: 300 / 220;
+  transform: translateY(-50%);
+  background: no-repeat center / contain
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 220'><g fill='none' stroke='%233b5b85' stroke-width='3' stroke-linecap='round'><path d='M30 70 L110 25 L190 70 L270 25 M30 70 H190 M110 25 H270 M190 70 L270 25'/><path d='M70 70 V130 M190 70 V130 M70 130 H230 M130 130 V200 M90 200 H170'/></g><g fill='%231e293b' stroke='%235b8fc7' stroke-width='3'><circle cx='30' cy='70' r='7'/><circle cx='110' cy='25' r='7'/><circle cx='190' cy='70' r='7'/><circle cx='270' cy='25' r='7'/><circle cx='70' cy='130' r='5'/><circle cx='190' cy='130' r='5'/><circle cx='130' cy='200' r='5'/></g></svg>");
+  pointer-events: none;
+}
+.reveal .slides section#title-slide::before {
+  content: "Économie de l'électricité";
+  display: block;
+  font-size: 0.45em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent-clair;
+  margin-bottom: 1.2em;
+}
+.reveal .slides section#title-slide .title {
+  color: white;
+  font-size: 1.9em;
+  line-height: 1.1;
+  max-width: 62%;
+}
+.reveal .slides section#title-slide .title::after {
+  content: "";
+  display: block;
+  width: 1.2em;
+  height: 0.12em;
+  margin-top: 0.35em;
+  background: $accent-clair;
+}
+.reveal .slides section#title-slide .subtitle {
+  color: #cbd5e1;
+  font-size: 0.75em;
+  font-style: normal;
+}
+.reveal .slides section#title-slide .quarto-title-authors,
+.reveal .slides section#title-slide .quarto-title-author-name {
+  color: $gris-texte;
+  font-size: 0.6em;
+  justify-content: flex-start;
+}
+
+// Titres de slide : filet cyan court sous le titre.
+.reveal .slides section.slide.level2 > h2 {
+  margin-bottom: 0.35em;
+}
+.reveal .slides section.slide.level2 > h2::after {
+  content: "";
+  display: block;
+  width: 1.4em;
+  height: 0.09em;
+  margin-top: 0.22em;
+  background: $accent;
+}
+
+// Partie en cours (filtre parties.lua) : étiquette au-dessus du titre et barre
+// de progression découpée en autant de segments que le module a de parties.
+.reveal .slides section.slide.level2[data-partie]::before {
+  content: attr(data-partie);
+  display: block;
+  font-size: 0.45em;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $accent;
+  margin-bottom: 0.15em;
+}
+.reveal .slides section.slide.level2[data-partie] > h2::before {
+  content: "";
+  position: absolute;
+  top: -0.4em;
+  left: 0;
+  right: 0;
+  height: 0.12em;
+  background: linear-gradient(
+    to right,
+    $accent calc(var(--partie) / var(--parties) * 100%),
+    $gris-filet 0
+  );
+  -webkit-mask-image: repeating-linear-gradient(
+    to right,
+    black 0 calc(100% / var(--parties) - 0.4em),
+    transparent 0 calc(100% / var(--parties))
+  );
+  mask-image: repeating-linear-gradient(
+    to right,
+    black 0 calc(100% / var(--parties) - 0.4em),
+    transparent 0 calc(100% / var(--parties))
+  );
+}
+
+// Pied de page (titre du deck) et numéro de slide, discrets.
+.reveal .footer {
+  font-size: 0.42em !important;
+  color: $gris-texte !important;
+  text-align: left !important;
+  left: 3.4em !important;
+  bottom: 0.9em !important;
+}
+.reveal .slide-number {
+  font-size: 0.42em !important;
+  color: $gris-texte !important;
+  background: transparent !important;
+}
+.reveal .progress {
+  color: $accent;
+  height: 3px;
+}
+
+// Ouverture de module (decks de séance) et objectifs du module.
+.reveal .slides section.titre-module {
+  text-align: left;
+}
+.reveal .slides section.titre-module h1 {
+  color: $nuit;
+  font-size: 1.8em;
+}
+.reveal .slides section.titre-module h1::before {
+  content: "Module";
+  display: block;
+  font-size: 0.28em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $accent;
+  margin-bottom: 0.4em;
+}
+.reveal .slides section.titre-module h1::after {
+  content: "";
+  display: block;
+  width: 0.9em;
+  height: 0.07em;
+  margin-top: 0.25em;
+  background: $accent;
+}
+.reveal .slides section.objectifs-module li::marker {
+  color: $accent;
+}
 
 // Figures en colonnes : Quarto fixe largeur et hauteur de l'image ; réduite à la
 // largeur de la colonne, elle garderait sa hauteur et serait déformée.
@@ -49,7 +209,7 @@ $presentation-h2-font-size: 1.4em;
 // Schéma du système en pleine largeur, avec un court texte dessous
 // (cellule marquée `#| classes: schema-focus`, texte dans `.sous-schema`).
 .reveal .slides .schema-focus img {
-  max-height: 440px;
+  max-height: 400px;
   width: auto;
   margin: 0;
 }
@@ -69,7 +229,7 @@ $presentation-h2-font-size: 1.4em;
 .reveal .slides .figure-large img {
   width: 100%;
   height: auto;
-  max-height: 560px;
+  max-height: 510px;
   object-fit: contain;
 }
 
@@ -100,7 +260,7 @@ $presentation-h2-font-size: 1.4em;
   height: 1.45em;
   line-height: 1.45em;
   border-radius: 50%;
-  background: $presentation-heading-color;
+  background: $nuit;
   color: white;
   font-weight: bold;
   text-align: center;
@@ -139,10 +299,6 @@ $presentation-h2-font-size: 1.4em;
   color: #e07a1f;
 }
 
-// Titre de module (slide de section générée par `ecoelec generer`)
-.reveal .slides section.titre-module h1 {
-  color: $presentation-heading-color;
-}
 
 // ---------------------------------------------------------------------------
 // Vue auteur : chaque marque signalée par un bandeau de couleur.

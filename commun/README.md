@@ -8,6 +8,7 @@
 | `biblio.bib` | Bibliographie unique, une entrée par référence avec DOI ou lien. |
 | `poly.scss` | Thème HTML du poly. |
 | `slides.scss` | Thème des slides, dont les bandeaux de la vue auteur. |
+| `filtres/parties.lua` | Parties d'un module (`## Titre {partie="…"}`) : étiquette au-dessus du titre, barre de progression par partie. |
 | `filtres/marques.lua` | Marques `.approfondissement`, `.formel`, `.intuitif`, `.rappel` des slides. |
 | `filtres/formalisation.lua` | Encadrés « Formalisation » du poly. |
 | `filtres/typographie.lua` | Espaces insécables de la typographie française. |
@@ -42,6 +43,16 @@ Classes définies dans `slides.scss`, à utiliser dans les `slides.qmd` :
 | `.attention` | mise en garde compacte (icône ⚠) |
 | `.a-retenir` | liste numérotée de la slide « À retenir » qui clôt chaque module |
 | `.transport`, `.distribution`, `.concurrence` | titre en gras coloré comme `pyelec.schema.ACCENTS` |
+
+Charte : bleu nuit (`$nuit`), bleu des titres, accent cyan (`$accent`) réservé à
+l'habillage (filets sous les titres, étiquettes de partie, progression). L'accent
+ne reprend aucune couleur des schémas ni des filières : il ne porte aucun sens.
+Slide de titre sur fond bleu nuit avec un réseau en filigrane ; pied de page avec
+le titre du deck (champ `footer` posé par `ecoelec generer`).
+
+Parties : `## Titre {partie="Système physique"}` ouvre une partie, qui vaut pour
+les slides suivantes du module ; chaque slide affiche alors l'étiquette de la
+partie et une barre découpée en autant de segments que le module a de parties.
 
 Règles automatiques : contenu centré verticalement sous le titre (sauf schéma
 `schema-focus`), filet entre colonnes, images en colonnes non déformées.

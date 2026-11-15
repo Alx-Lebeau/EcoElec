@@ -1,4 +1,4 @@
-## Que voit-on ?
+## Que voit-on ? {partie="Système physique"}
 
 ```{python}
 #| fig-align: center
@@ -50,7 +50,7 @@ Trois composantes, de l'amont à l'aval, détaillées dans les slides suivantes 
 
 ::: {.figure-large}
 ```{python}
-fig = plt.figure(figsize=(10, 3.5))
+fig = plt.figure(figsize=(10, 3.4))
 physical_laws(fig)
 plt.show()
 ```
@@ -392,7 +392,7 @@ avec RTE. Température : Météo-France, moyenne des départements pondérée pa
 consommation résidentielle et tertiaire.
 :::
 
-## Avant la libéralisation : un monopole intégré
+## Avant la libéralisation : un monopole intégré {partie="Organisation"}
 
 ```{python}
 #| fig-align: center
@@ -557,7 +557,7 @@ partie des ménages (tarif réglementé :
 `{python} f"{detail['sites_residentiels_trve']:.1f}".replace(".", ",")` millions de sites).
 :::
 
-## À retenir
+## À retenir {partie="Synthèse"}
 
 ::: {.a-retenir}
 1. **Un système physique, une organisation** : le même réseau peut être géré par un
