@@ -77,19 +77,37 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
   « éolien et solaire » d'EDF couvre le groupe, hors de France compris) : elle est
   comptée dans « autres producteurs », ce qui sous-estime la part d'EDF.
 
-### `consommation/courbe-charge-2025.csv` et `consommation/temperature-2025.csv`
+### `consommation/courbe-charge-2025.csv`
 
-- **Contenu** : consommation nationale horaire en 2025 (GW, heure locale de Paris) ;
-  température moyenne quotidienne en 2025 (°C).
-- **Sources** : RTE, « Données éCO2mix nationales consolidées et définitives » ;
-  Weathernews France, « Température quotidienne régionale » (jeux ODRÉ).
-- **Traitements** : consommation au pas de 15 ou 30 minutes moyennée par heure, MW → GW ;
-  température : moyenne non pondérée des régions (ordre de grandeur, pas la
-  température de référence de RTE). `consommation/telecharger_courbe.py ANNÉE`
-  régénère les deux fichiers.
-- **Précautions** : quelques jours manquent dans les températures ; l'heure du
-  changement d'heure de printemps n'existe pas (8 759 heures).
+- **Contenu** : consommation nationale horaire en 2025 (GW, heure locale de Paris).
+- **Source** : RTE, « Données éCO2mix nationales consolidées et définitives » (ODRÉ).
+- **Traitements** : pas de 15 ou 30 minutes moyenné par heure, MW → GW ;
+  `consommation/telecharger_courbe.py ANNÉE` régénère le fichier. L'heure du passage
+  à l'heure d'été n'existe pas (8 759 heures).
 - **Licence** : Licence Ouverte v2.0 (Etalab).
+
+### `consommation/temperature-2025.csv`
+
+- **Contenu** : température moyenne quotidienne de la France métropolitaine en 2025 (°C).
+- **Sources** : Météo-France, « Données climatologiques de base - quotidiennes »
+  (data.gouv.fr), champ TNTXM ; pondération : consommation électrique résidentielle et
+  tertiaire par département (SDES, via ODRÉ).
+- **Traitements** : moyenne des stations de chaque département (stations de plus de
+  800 m exclues), puis moyenne des départements pondérée par leur consommation
+  résidentielle et tertiaire. `consommation/telecharger_temperature.py ANNÉE` régénère
+  le fichier (fichiers Météo-France mis en cache dans `data/telechargements/`).
+- **Précautions** : construction propre au cours, proche dans l'esprit de la
+  température de référence de RTE mais pas identique.
+- **Licence** : Licence Ouverte v2.0 (Etalab).
+
+### `consommation/thermosensibilite-rte.csv`
+
+- **Contenu** : thermosensibilité hivernale de la consommation française publiée par RTE
+  (2,4 GW par degré perdu en vague de froid).
+- **Source** : RTE, *L'équilibre offre-demande d'électricité pour l'hiver 2021-2022*
+  (novembre 2021), entrée `rte-hiver-2021-2022` de `commun/biblio.bib` ; saisie manuelle.
+- **Précautions** : chiffre de référence repris par RTE d'un bilan à l'autre depuis
+  2017 ; pas de valeur plus récente trouvée dans les publications de 2025-2026.
 
 ## À migrer
 

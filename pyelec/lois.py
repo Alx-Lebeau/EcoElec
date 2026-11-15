@@ -71,13 +71,13 @@ def balance(ax: plt.Axes) -> None:
         ax.text(x, 6.05, title, ha="center", va="center", fontsize=13, fontweight="bold",
                 color=_shade(c, -0.2))  # fmt: skip
         for k, item in enumerate(items):
-            _pill(ax, x, 5.35 - 0.62 * k, 3.6, 0.5, item, _shade(c, 0.82), tc=TEXT)
-    ax.text(5, 4.75, "=", ha="center", va="center", fontsize=34, fontweight="bold", color=TEXT)
-    ax.text(5, 2.85, "Le réseau ne stocke rien : batteries et STEP injectent ou soutirent.",
+            _pill(ax, x, 5.4 - 0.58 * k, 3.6, 0.48, item, _shade(c, 0.82), tc=TEXT)
+    ax.text(5, 4.85, "=", ha="center", va="center", fontsize=34, fontweight="bold", color=TEXT)
+    ax.text(5, 3.0, "Le réseau ne stocke rien : batteries et STEP injectent ou soutirent.",
             ha="center", va="center", fontsize=10.5, color=TEXT_LIGHT)  # fmt: skip
 
     # Cadran de fréquence : zone normale autour de 50 Hz.
-    cx, cy, r = 5, 0.35, 1.75
+    cx, cy, r = 5, 0.25, 1.5
     span = (49.0, 51.0)
 
     def angle(f):
@@ -90,7 +90,7 @@ def balance(ax: plt.Axes) -> None:
     ax.plot([cx, cx + 0.82 * r * math.cos(a)], [cy, cy + 0.82 * r * math.sin(a)], color=TEXT,
             lw=3, solid_capstyle="round", zorder=3)  # fmt: skip
     ax.add_patch(Circle((cx, cy), 0.13, fc=TEXT, zorder=4))
-    ax.text(cx, cy + r + 0.3, "fréquence : 50 Hz", ha="center", va="center", fontsize=11.5,
+    ax.text(cx, cy + r + 0.28, "fréquence : 50 Hz", ha="center", va="center", fontsize=11.5,
             fontweight="bold", color=TEXT)  # fmt: skip
     ax.text(cx - r - 0.15, cy + 0.35, "consommation\n> production", ha="right", va="center",
             fontsize=10.5, color=TEXT_LIGHT, linespacing=1.1)  # fmt: skip

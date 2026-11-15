@@ -359,11 +359,13 @@ dans la journée ? Transition vers la courbe de charge.
 annee_courbe = 2025  # fichiers produits par data/consommation/telecharger_courbe.py
 courbe = pd.read_csv(DATA_DIR / "consommation" / f"courbe-charge-{annee_courbe}.csv")
 temperature = pd.read_csv(DATA_DIR / "consommation" / f"temperature-{annee_courbe}.csv")
+rte = pd.read_csv(DATA_DIR / "consommation" / "thermosensibilite-rte.csv")
+thermo_rte = rte.set_index("indicateur").loc["thermosensibilite_hiver", "valeur"]
 fig = plt.figure(figsize=(10, 3.9))
 thermo = load_variability(fig, courbe, temperature)
 style.add_source(
     fig,
-    "RTE, éCO2mix ; Weathernews France, températures régionales (via ODRÉ)",
+    "RTE, éCO2mix ; Météo-France, températures quotidiennes ; calcul de l'auteur",
     str(annee_courbe),
 )
 plt.show()
@@ -371,8 +373,8 @@ plt.show()
 :::
 
 ::: {.sous-schema}
-**Thermosensibilité** : l'hiver, environ `{python} f"{thermo:.1f}".replace(".", ",")` GW
-de plus par degré en moins (chauffage électrique).
+**Thermosensibilité** : l'hiver, environ `{python} f"{thermo_rte:.1f}".replace(".", ",")` GW
+de plus par degré en moins selon RTE (chauffage électrique).
 :::
 
 ::: {.notes}
@@ -383,8 +385,11 @@ française est l'une des plus fortes d'Europe, à cause du chauffage électrique
 Conséquence : il faut des moyens de production pour la pointe d'hiver, qui
 tournent peu le reste de l'année : on y reviendra avec le long terme.
 
-Pente estimée sur les jours ouvrés de moins de 15 °C (régression linéaire) ;
-température moyenne des régions, non pondérée : ordre de grandeur seulement.
+Chiffre affiché : RTE (2,4 GW/°C, note sur l'hiver 2021-2022). La droite du nuage
+est une estimation propre au cours sur 2025 (jours ouvrés de moins de 15 °C,
+régression linéaire) : `{python} f"{thermo:.1f}".replace(".", ",")` GW/°C, cohérente
+avec RTE. Température : Météo-France, moyenne des départements pondérée par leur
+consommation résidentielle et tertiaire.
 :::
 
 ## Avant la libéralisation : un monopole intégré

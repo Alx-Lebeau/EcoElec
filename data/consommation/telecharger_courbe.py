@@ -1,10 +1,8 @@
-"""Télécharge la courbe de charge nationale d'une année et la température quotidienne.
+"""Télécharge la courbe de charge nationale d'une année.
 
-Sources (ODRÉ, Licence Ouverte v2.0) :
-- RTE, « Données éCO2mix nationales consolidées et définitives » : consommation
-  au pas de 15 ou 30 minutes, moyennée ici par heure (GW) ;
-- « Température quotidienne régionale » (Weathernews France) : température
-  moyenne des régions, moyennée ici sans pondération (°C).
+Source : RTE, « Données éCO2mix nationales consolidées et définitives » (ODRÉ,
+Licence Ouverte v2.0) : consommation au pas de 15 ou 30 minutes, moyennée ici
+par heure (GW). La température est téléchargée par `telecharger_temperature.py`.
 
     uv run python data/consommation/telecharger_courbe.py 2025
 """
@@ -51,21 +49,7 @@ def main(year: int) -> None:
                 [t.strftime("%Y-%m-%d %H:%M"), round(sum(values) / len(values) / 1000, 2)]
             )
 
-    rows = _export(
-        "temperature-quotidienne-regionale",
-        "date, tmoy",
-        f"date >= date'{year}-01-01' and date <= date'{year}-12-31'",
-    )
-    daily = defaultdict(list)
-    for r in rows:
-        if r["tmoy"]:
-            daily[r["date"]].append(float(r["tmoy"]))
-    with (HERE / f"temperature-{year}.csv").open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["date", "temperature_c"])
-        for d in sorted(daily):
-            writer.writerow([d, round(sum(daily[d]) / len(daily[d]), 2)])
-    print(f"{year} : {len(hourly)} heures, {len(daily)} jours")
+    print(f"{year} : {len(hourly)} heures")
 
 
 if __name__ == "__main__":
