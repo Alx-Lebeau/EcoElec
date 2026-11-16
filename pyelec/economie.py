@@ -17,7 +17,8 @@ décroissance forte.
   la VOLL (usages non flexibles, puis usages flexibles)
 - `welfare` : surplus social pour une quantité donnée
 - `optimum` : surplus maximal en q*, perte au-delà
-- `market` : équilibre de marché, prix et partage du surplus.
+- `market` : équilibre de marché, prix et partage du surplus ;
+- `usage_value` : valeur d'usage d'un stock, produire maintenant ou plus tard.
 
 Usage :
 
@@ -29,7 +30,7 @@ Usage :
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import ConnectionPatch, Rectangle
+from matplotlib.patches import ConnectionPatch, FancyBboxPatch, Rectangle
 
 from pyelec.palette import color
 from pyelec.schema import ACCENTS, TEXT, TEXT_LIGHT, _shade
@@ -371,3 +372,57 @@ def market(ax: plt.Axes, voll: bool = False) -> tuple[float, float]:
     _tick(ax, p_eq, "p*")
     _tick(ax, q_eq, "q*", axis="x")
     return q_eq, p_eq
+
+
+def _decision_box(ax, x, y, w, h, title, sub, c):
+    ax.add_patch(FancyBboxPatch((x - w / 2, y - h / 2), w, h, fc=_shade(c, 0.85), ec=c, lw=2,
+                                boxstyle="round,pad=0,rounding_size=0.08"))  # fmt: skip
+    ax.text(x, y + h * 0.17, title, ha="center", va="center", color=_shade(c, -0.3),
+            fontsize=12, fontweight="bold")  # fmt: skip
+    ax.text(x, y - h * 0.2, sub, ha="center", va="center", color=TEXT, fontsize=11.5)
+
+
+def usage_value(fig: plt.Figure) -> None:
+    """Valeur d'usage d'un stock : produire maintenant ou plus tard ?
+
+    À gauche, l'arbitrage : vendre le MWh au prix du moment, ou le garder pour une
+    période future, où il aura une valeur attendue. À droite, une saison stylisée : on
+    produit quand le prix dépasse la valeur d'usage, on garde le stock sinon.
+    """
+    left, right = fig.subplots(1, 2, gridspec_kw={"width_ratios": [1, 1.35], "wspace": 0.32})
+    left.set_xlim(-0.04, 1.04)
+    left.set_ylim(-0.04, 1.04)
+    left.axis("off")
+    stock = color("hydraulique")
+    # Eau d'abord, cadre par-dessus : le contenu reste à l'intérieur du réservoir.
+    left.add_patch(Rectangle((0.02, 0.34), 0.2, 0.16, fc=_shade(stock, 0.35), ec="none", zorder=1))
+    left.add_patch(Rectangle((0.02, 0.34), 0.2, 0.32, fc="none", ec=TEXT, lw=2, zorder=2))
+    left.text(0.12, 0.3, "stock\nlimité", ha="center", va="top", color=TEXT, fontsize=12,
+              linespacing=1.2)  # fmt: skip
+    now, later = SUPPLY, DEMAND
+    _decision_box(left, 0.66, 0.82, 0.7, 0.3, "produire maintenant", "prix du moment", now)
+    _decision_box(left, 0.66, 0.18, 0.7, 0.3, "garder pour plus tard",
+                  "valeur future attendue", later)  # fmt: skip
+    for y, c in ((0.75, now), (0.25, later)):
+        left.annotate("", xy=(0.3, y), xytext=(0.23, 0.5),
+                      arrowprops={"arrowstyle": "-|>", "color": c, "lw": 2.2,
+                                  "mutation_scale": 16})  # fmt: skip
+
+    _concept_axes(right, "Temps (une saison)", "€/MWh")
+    t = np.linspace(0, 1, 400)
+    # Saison stylisée : tendance (prix hauts aux deux bouts) et fluctuations.
+    price = (0.5 + 0.25 * np.cos(2 * np.pi * t) + 0.06 * np.sin(2 * np.pi * 7 * t)
+             + 0.04 * np.sin(2 * np.pi * 13 * t + 1))  # fmt: skip
+    value = 0.52
+    above = price > value
+    right.fill_between(t, value, price, where=above, color=_shade(now, 0.55), lw=0,
+                       interpolate=True)  # fmt: skip
+    right.plot(t, price, color=TEXT, lw=2)
+    right.hlines(value, 0, 1, color=later, lw=2.5, ls="--")
+    _tick(right, value, "valeur\nd'usage", c=later)
+    right.text(0.06, 0.93, "on produit", color=_shade(now, -0.3), fontsize=13,
+               fontweight="bold")  # fmt: skip
+    right.text(0.5, 0.03, "on garde le stock", ha="center", color=_shade(later, -0.2),
+               fontsize=13, fontweight="bold")  # fmt: skip
+    right.text(0.86, float(np.interp(0.86, t, price)) + 0.06, "prix", ha="center", color=TEXT,
+               fontsize=13)  # fmt: skip

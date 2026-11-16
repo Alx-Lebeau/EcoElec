@@ -145,6 +145,9 @@ parcours, une page des séances avec les chapitres du poly à lire.
 
 - Français ; reformulation minimale, tournures impersonnelles, rapport signal/bruit élevé.
 - Pas de point-virgule : couper en deux phrases ou mettre une virgule.
+- Sigles : jamais sans les expliciter à leur première occurrence. Sur une slide
+  qui réemploie des sigles vus longtemps avant, cartouche de rappel `::: {.sigles}`
+  (liste en fin de slide, classe de `commun/slides.scss`).
 - Formulations épicènes : « le public », « les élèves », « on » plutôt que « le lecteur », « l'étudiant ».
 - Typographie : guillemets « » ; les espaces insécables avant `: ; ! ?` et dans
   les guillemets sont posées automatiquement au rendu (`typographie.lua`) :

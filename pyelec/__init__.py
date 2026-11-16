@@ -8,6 +8,8 @@ Utilisé par le poly, les slides et les notebooks :
 - `organisation` : flux physiques et contractuels, chaîne amont-aval, parts de marché ;
 - `lois` : équilibre injections-soutirages et répartition des flux (Kirchhoff).
 - `economie` : graphiques conceptuels (coûts, utilité, équilibre, surplus).
+- `dispatch` : court terme d'un parc illustratif (coûts variables, merit order,
+  prix, surplus, VOLL).
 
 Les briques de modélisation (dispatch, investissement) arriveront avec la
 migration des modules.

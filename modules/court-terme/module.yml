@@ -1,5 +1,9 @@
 titre: "Équilibre de court terme et formation des prix"
-prerequis: [systeme]                 # à revoir avec l'arrivée de cadre
-objectifs: []
+prerequis: [systeme, cadre]
+objectifs:
+  - "Délimiter le court terme : exploiter un système donné, sans investir"
+  - Calculer le coût variable d'une centrale au gaz à partir des prix du gaz et du CO₂
+  - Construire le merit order et en déduire le prix d'équilibre
+  - Lire les surplus et le prix quand le parc ne suffit pas (VOLL)
 duree: null                          # minutes de la base
 tp: [tp-court-terme]                 # TP 01 de Cours-EcoElec, à migrer

@@ -1,65 +1,367 @@
-## En vrac : matériau venu du module cadre
+## Rappel : le cadre d'analyse {.rappel module="cadre"}
+
+- **Coûts fixes** : indépendants de la production. **Coûts variables** : proportionnels
+  à la production.
+- **Surplus social** : utilité des consommateurs moins coûts de production.
+- **Planificateur bienveillant** : référence théorique qui maximise le surplus social.
+  Un marché concurrentiel retrouve en théorie le même optimum.
+
+## Le court terme : exploiter un système donné {partie="Le problème"}
 
 ```{python}
 import matplotlib.pyplot as plt
 
-from pyelec import economie, style
+from pyelec import dispatch, economie, label, style
+from pyelec.dispatch import number
 
 style.use()
+parc = dispatch.load_fleet()
+demande = dispatch.load_demand()
+couts_gaz = dispatch.gas_plant_costs()
+annee_prix = couts_gaz.attrs["annee"]
+source_couts = "CRE (prix, rendements) ; GIEC (émissions) ; ENTSO-E, ERAA 2024 (VOM)"
 ```
 
-Slides déplacées du module cadre, à intégrer et à réécrire.
+:::: {.columns}
+::: {.column width="50%"}
+**Ce qu'on décide**
 
-## L'utilité des consommateurs et la VOLL
+- quelles centrales produisent, et combien
+- quand charger et décharger les stockages
+- importer ou exporter
+- consommer ou s'effacer
+:::
+::: {.column width="50%"}
+**Ce qui est donné**
+
+- le parc de production
+- les stockages
+- le réseau
+
+Investir relève du **long terme**.
+:::
+::::
+
+::: {.attention}
+Court terme ne veut pas dire temps réel : c'est l'horizon où les capacités sont fixées.
+:::
+
+::: {.notes}
+Définition économique, pas calendaire : le court terme couvre toutes les décisions
+prises avec un parc donné, de l'ajustement en temps réel à la programmation de la
+production de la saison suivante.
+
+Simplifications du module : une seule heure, pas de réseau, pas de contraintes
+techniques (démarrages, minimums techniques, rampes). Elles reviennent dans les
+modules suivants.
+:::
+
+## Le problème du planificateur
+
+::: {.figure-large}
+```{python}
+fig, ax = plt.subplots(figsize=(10, 2.7))
+dispatch.fleet_and_demand(ax, parc, demande.loc["normale", "non_flexible"])
+style.add_source(fig, "parc et demande illustratifs", str(annee_prix))
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+Un planificateur bienveillant dispose de quatre types de centrales pour servir la
+demande d'une heure donnée : renouvelables, nucléaire, cycles combinés au gaz
+(**CCG**) et turbines à combustion (**TAC**).
+
+**Quelles centrales faire produire ?**
+:::
+
+::: {.notes}
+Turbine à combustion : au gaz ou au fioul (ici au gaz). Capacités disponibles à l'heure considérée, pas capacités installées : les
+renouvelables dépendent du vent et du soleil, les autres filières des arrêts.
+
+Laisser le public proposer. Réponse attendue : « les moins chères d'abord ». Relancer :
+moins chères selon quel coût ? Le coût complet par MWh produit, qui inclut
+l'investissement, ou autre chose ?
+:::
+
+## Quels coûts ? {partie="Coûts"}
+
+:::: {.columns}
+::: {.column width="52%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.fixed_and_variable_costs(ax)
+plt.show()
+```
+:::
+::: {.column width="48%"}
+**Coûts fixes** (€/MW/an) : investissement, personnel, maintenance programmée.
+Payés que la centrale tourne ou non.
+
+**Coûts variables** (€/MWh) : combustible, CO₂, usure. Payés seulement quand
+elle produit.
+
+**À court terme, seuls les coûts variables comptent** : produire ou non ne change
+pas les coûts fixes.
+:::
+::::
+
+::: {.notes}
+Piège courant : classer les centrales par coût complet (coût moyen du MWh sur la
+durée de vie, investissement compris). À court terme, l'investissement est dépensé,
+qu'on produise ou non : c'est un coût irrécupérable, sans effet sur la décision.
+
+Structures contrastées : le nucléaire a des coûts fixes élevés et des coûts
+variables faibles, la TAC l'inverse. Les coûts fixes reviennent au long terme :
+les recettes du marché doivent les couvrir.
+:::
+
+## Le coût variable d'une centrale au gaz
+
+```{python}
+centrales = dispatch.load_gas_plants()
+gaz_naturel = dispatch.load_natural_gas()
+
+
+def rendement(filiere, base="pci"):
+    colonne = "rendement_pci" if base == "pci" else "rendement"
+    return f"{centrales.loc[filiere, colonne] * 100:.0f}"
+```
 
 :::: {.columns}
 ::: {.column width="55%"}
 ```{python}
 #| classes: figure-colonne
-fig, ax = plt.subplots(figsize=economie.FIGSIZE)
-economie.marginal_utility(ax, voll=True)
+fig, ax = plt.subplots(figsize=(6, 3.2))
+dispatch.gas_plant_flow(ax, centrales.loc["ccg"])
+style.add_source(fig, "CRE (rendement) ; GIEC (émissions)", str(annee_prix))
 plt.show()
 ```
 :::
 ::: {.column width="45%"}
-**Utilité** : valeur retirée de l'électricité, mesurée en euros par la
-**disposition à payer**.
+1 MWh d'électricité : $1/\eta$ MWh de gaz brûlés, et le CO₂ émis à payer.
 
-**Utilité marginale**, valeur du dernier MWh :
+$$
+\CV = \frac{p_{\text{gaz}} + e \times p_{\text{CO}_2}}{\eta} + \text{VOM}
+$$
 
-- Usages non flexibles : une coupure coûte la **VOLL**.
-- Usages flexibles : abandonnés si le prix monte.
+Par MWh de gaz **PCS** (pouvoir calorifique supérieur), unité des marchés :
 
-::: {.formel}
-$U(q) = \int_0^q U'(x) \, \mathrm{d}x$
-:::
+- $\eta$ : rendement, `{python} rendement("ccg", "pcs")` % PCS (CCG)
+- $e$ : `{python} number(centrales.loc["ccg", "facteur_emission"], 2)` tCO₂/MWh PCS
+- VOM : exploitation et maintenance
 :::
 ::::
 
 ::: {.notes}
-Disposition à payer : le montant maximal qu'un consommateur accepterait de payer
-pour ce MWh plutôt que de s'en passer. C'est l'équivalent monétaire de l'utilité, et
-la courbe d'utilité marginale est la courbe de demande.
+Lire le schéma de gauche à droite : 1 MWh de gaz entre, un peu plus de la moitié en
+ressort sous forme d'électricité, le reste part en chaleur. Le CO₂ émis dépend du gaz
+brûlé, pas de l'électricité produite : d'où la division par le rendement.
 
-Objections fréquentes, à accueillir :
+VOM : *variable operation and maintenance*. Quelques euros par MWh, presque rien
+devant le combustible.
 
-- « La valeur d'un hôpital ne se réduit pas à un prix » : la disposition à payer
-  n'est pas un jugement moral, elle mesure ce à quoi on renonce pour consommer.
-  Pour les usages vitaux, elle est très élevée, d'où la VOLL.
-- « Un euro ne vaut pas autant pour tout le monde » : exact. Additionner des
-  dispositions à payer revient à donner le même poids à chaque euro, donc plus de
-  poids aux plus riches. Le surplus mesure l'efficacité, la répartition se traite
-  à part (tarifs sociaux, chèque énergie).
+PCS et PCI : le pouvoir calorifique supérieur compte la chaleur récupérable en
+condensant la vapeur d'eau des fumées, l'inférieur non. Le gaz se vend en MWh PCS
+(marchés, factures), les rendements des centrales s'énoncent d'habitude en PCI.
+1 MWh PCS ≈ `{python} number(gaz_naturel["pci_par_pcs"], 1)` MWh PCI. Rendement de
+`{python} rendement("ccg")` % PCI, soit `{python} rendement("ccg", "pcs")` % PCS. Facteur
+d'émission du GIEC : `{python} number(gaz_naturel["facteur_emission_pci"], 3)` tCO₂ par
+MWh PCI, soit `{python} number(centrales.loc["ccg", "facteur_emission"], 3)` par MWh
+PCS. Mélanger les deux bases fausse le coût d'environ 10 %.
 
-VOLL (*value of lost load*, valeur de l'énergie non distribuée) : valeur moyenne
-d'un MWh coupé (perte de production, d'activité, de confort). Elle est estimée par
-enquêtes auprès des consommateurs et bien supérieure aux coûts de production
-habituels. Coût d'une défaillance : $\VOLL \times \END$. Elle fixe le critère de sécurité d'approvisionnement (modules court
-terme, long terme et capacité).
+Rendements de référence de la CRE. Une centrale réelle s'en écarte selon son âge et sa
+charge.
+:::
 
-Partie flexible pentue : à court terme, la consommation réagit peu au prix, car
-peu de consommateurs le voient (transition vers prix et tarif) et peu d'usages se
-déplacent facilement.
+## CCG et TAC : le rendement fait la différence
+
+:::: {.columns}
+::: {.column width="50%"}
+**CCG** : la chaleur des gaz d'échappement fait tourner une turbine à vapeur.
+Rendement `{python} rendement("ccg")` % PCI.
+:::
+::: {.column width="50%"}
+**TAC** : une turbine seule, la chaleur est perdue. Rendement
+`{python} rendement("tac")` % PCI, mais démarrage en quelques minutes.
+:::
+::::
+
+::: {.figure-large}
+```{python}
+fig, ax = plt.subplots(figsize=(10, 2.3))
+dispatch.gas_cost_breakdown(ax, couts_gaz)
+style.add_source(fig, f"{source_couts} ; prix moyens de {annee_prix}", str(annee_prix))
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+Avec les prix moyens de `{python} annee_prix` : gaz `{python} number(couts_gaz.attrs["prix_gaz"])` €/MWh PCS,
+CO₂ `{python} number(couts_gaz.attrs["prix_co2"])` €/t. Le gaz pèse les deux tiers du coût.
+:::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+- VOM : coûts variables d'exploitation et de maintenance
+:::
+
+::: {.notes}
+Même combustible, même prix : seul le rendement les sépare. La TAC coûte plus cher à
+chaque MWh, mais elle est moins chère à construire et démarre vite : c'est une
+centrale de pointe, qui tourne peu d'heures (long terme).
+
+Prix du gaz au PEG (point d'échange de gaz, la place de marché française), prix
+*day-ahead* (livraison le lendemain), moyenne annuelle.
+:::
+
+## Les prix du gaz et du CO₂ : très variables
+
+::: {.figure-large}
+```{python}
+prix_gaz = dispatch.load_gas_prices()
+prix_annuels = dispatch.load_annual_prices()
+fig = plt.figure(figsize=(10, 3.0))
+dispatch.fuel_prices(fig, prix_gaz, prix_annuels)
+style.add_source(
+    fig,
+    "Banque mondiale, Pink Sheet ; BCE, taux de change (gaz) ; CRE, rapports de surveillance (CO₂)",
+    f"{prix_gaz.index[-1].year}",
+)
+plt.show()
+```
+:::
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+**Gaz** : échangé sur des places de marché. Référence européenne : le **TTF**
+(*Title Transfer Facility*), aux Pays-Bas.
+:::
+::: {.column width="50%"}
+**CO₂** : système européen d'échange de quotas (**EU ETS**). Une centrale restitue
+un quota (**EUA**, *EU allowance*) par tonne émise.
+:::
+::::
+
+```{python}
+pic = prix_gaz.idxmax()
+cout_pic = (prix_gaz.max() + centrales.loc["ccg", "facteur_emission"] * prix_annuels.loc[pic.year, "co2_eur_t"]) / centrales.loc["ccg", "rendement"] + centrales.loc["ccg", "vom"]
+```
+
+::: {.notes}
+Ordre de grandeur : au pic de `{python} pic.year`, avec le prix moyen du quota de
+l'année, le coût variable d'un CCG atteint `{python} number(cout_pic)` €/MWh,
+contre `{python} number(couts_gaz.loc["ccg", "total"])` €/MWh avec les prix moyens
+de `{python} annee_prix`.
+
+Gaz : crise de 2022 (module dédié), puis détente grâce au gaz naturel liquéfié.
+Nouvelle hausse en 2026 avec la guerre au Moyen-Orient (CRE). En France, le prix de
+référence est le PEG (point d'échange de gaz), généralement proche du TTF.
+
+CO₂ : le nombre de quotas est plafonné et décroît chaque année. Le prix du quota
+est un coût même pour qui a reçu ses quotas gratuitement : il pourrait les vendre
+au lieu de les restituer (coût d'opportunité). Les producteurs d'électricité n'en
+reçoivent plus gratuitement dans l'Union depuis 2013, à quelques exceptions près.
+Le prix du CO₂ fait passer le coût des émissions dans le coût variable : c'est l'outil
+qui fait reculer le charbon derrière le gaz dans le merit order.
+
+Données : prix mensuels du gaz de la Banque mondiale (TTF depuis 2015), convertis
+en €/MWh PCS. La Banque mondiale ne précise pas le contrat retenu. Ses moyennes
+annuelles collent au contrat du mois suivant (M+1) plutôt qu'au *day-ahead* : en 2022,
+`{python} number(prix_gaz[prix_gaz.index.year == 2022].mean())` €/MWh, contre
+`{python} number(prix_annuels.loc[2022, "gaz_eur_mwh"] + prix_annuels.loc[2022, "ecart_ttf_peg"])` €/MWh
+pour le TTF *day-ahead* d'après la CRE (PEG plus écart TTF-PEG). Pas de série mensuelle du quota sous licence ouverte : moyennes annuelles et
+extrêmes publiés par la CRE (minimum de 2022 non publié).
+:::
+
+## Nucléaire et hydraulique : une valeur d'usage
+
+::: {.figure-large}
+```{python}
+fig = plt.figure(figsize=(10, 3.0))
+economie.usage_value(fig)
+plt.show()
+```
+:::
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+**Stock limité** : eau d'un lac, combustible nucléaire jusqu'au prochain
+rechargement. Produire maintenant, c'est ne plus pouvoir produire plus tard.
+:::
+::: {.column width="50%"}
+**Valeur d'usage** : valeur future attendue du MWh gardé. Coût d'opportunité, il tient
+lieu de coût variable. Les **renouvelables**, sans stock, ont un coût quasi nul.
+:::
+::::
+
+::: {.notes}
+Lecture : le producteur compare le prix du moment à ce que le MWh rapporterait plus
+tard. Il produit quand le prix dépasse la valeur d'usage (zones orangées) et garde
+son stock sinon. Saison stylisée, sans données.
+
+Renouvelables (éolien, solaire, fil de l'eau) : l'énergie non produite est perdue,
+d'où un coût d'opportunité nul.
+
+La valeur d'usage se calcule en optimisant la gestion du stock sur toute la
+saison, avec des prévisions incertaines de demande, d'apports d'eau et de prix
+(programmation dynamique) : hors du module. Elle est élevée quand le stock est bas
+et que des périodes chères s'annoncent, faible quand le réservoir déborde.
+
+Le coût du combustible nucléaire est faible : ce n'est pas lui qui détermine la
+place du nucléaire dans le classement, mais le stock à répartir dans le temps et les
+contraintes de modulation.
+
+Parc illustratif : valeur d'usage du nucléaire de
+`{python} number(parc.set_index("filiere").loc["nucleaire", "cout_variable"])` €/MWh,
+valeur choisie pour l'exemple, non calculée.
+:::
+
+## Le merit order {partie="Merit order"}
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=dispatch.FIGSIZE)
+dispatch.supply_curve(ax, parc)
+style.add_source(fig, "parc illustratif ; coûts du gaz : CRE, ENTSO-E", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Ordre de préséance économique** : centrales appelées par coût variable
+croissant.
+
+- **En paliers** : un palier par filière, de la largeur de sa capacité.
+- Le coût du MWh supplémentaire à chaque niveau de production : la **courbe
+  d'offre**.
+
+::: {.formel}
+$$
+\begin{aligned}
+\min_{p} \; & \textstyle\sum_i \CV_i \, p_i \\
+\text{avec} \; & \textstyle\sum_i p_i = D, \;\; 0 \le p_i \le \Pmax_i
+\end{aligned}
+$$
+:::
+:::
+::::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+:::
+
+::: {.notes}
+Pour une demande donnée, appeler les centrales dans cet ordre minimise le coût de
+production : c'est la réponse au problème du planificateur. Ce dernier n'a pas besoin
+de connaître la demande pour établir le classement.
+
+Version formelle : problème linéaire. La solution remplit les filières par coût
+croissant jusqu'à atteindre la demande.
 :::
 
 ## Continu ou en paliers ?
@@ -81,10 +383,12 @@ encadrement.]{.formel}
 :::
 
 ::: {.notes}
+Dans une filière, les centrales n'ont pas toutes le même coût variable (rendement,
+âge, prix du combustible livré). Le parc réel compte des centaines d'unités : de loin,
+la courbe paraît continue.
+
 Le cadre continu suppose une infinité de petites unités, chacune négligeable, aux
-coûts différents. Ou bien un regard d'assez loin pour ne plus voir les ruptures.
-De près, elles réapparaissent, et le merit order des modules suivants travaille
-précisément avec ces paliers.
+coûts différents. De près, les ruptures réapparaissent.
 
 Au-delà des paliers, de vraies non-convexités, qui posent des problèmes pratiques :
 
@@ -94,7 +398,206 @@ Au-delà des paliers, de vraies non-convexités, qui posent des problèmes prati
   la fois.
 
 Conséquences, traitées plus loin : il peut ne pas exister de prix qui soutienne
-l'optimum (court terme, compléments de rémunération), et le parc optimal se
-construit par blocs (long terme).
+l'optimum, et le parc optimal se construit par blocs (long terme).
 :::
 
+## La demande et la VOLL {partie="Équilibre"}
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.marginal_utility(ax, voll=True)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Utilité marginale** des consommateurs, mesurée par leur disposition à payer :
+c'est la courbe de demande.
+
+- Usages non flexibles : une coupure coûte la **VOLL** (*value of lost load*),
+  valeur de l'énergie non distribuée.
+- Usages flexibles : abandonnés si le prix monte.
+
+::: {.formel}
+$U(q) = \int_0^q U'(x) \, \mathrm{d}x$
+:::
+:::
+::::
+
+::: {.notes}
+Disposition à payer : le montant maximal qu'un consommateur accepterait de payer
+pour ce MWh plutôt que de s'en passer.
+
+Objections fréquentes, à accueillir :
+
+- « La valeur d'un hôpital ne se réduit pas à un prix » : la disposition à payer
+  n'est pas un jugement moral, elle mesure ce à quoi on renonce pour consommer.
+  Pour les usages vitaux, elle est très élevée, d'où la VOLL.
+- « Un euro ne vaut pas autant pour tout le monde » : exact. Additionner des
+  dispositions à payer revient à donner le même poids à chaque euro, donc plus de
+  poids aux plus riches. Le surplus mesure l'efficacité, la répartition se traite
+  à part (tarifs sociaux, chèque énergie).
+
+VOLL (*value of lost load*, valeur de l'énergie non distribuée) : valeur moyenne
+d'un MWh coupé (perte de production, d'activité, de confort). Elle est estimée par
+enquêtes auprès des consommateurs et bien supérieure aux coûts de production.
+Coût d'une défaillance : $\VOLL \times \END$.
+:::
+
+## Offre, demande et prix
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=dispatch.FIGSIZE)
+eq = dispatch.equilibrium(ax, parc, demande.loc["normale"])
+style.add_source(fig, "parc et demande illustratifs", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Une demande presque verticale** : à court terme, la consommation réagit peu
+au prix.
+
+**L'intersection** fixe la quantité q\* et le prix p\* :
+
+- les filières à gauche de q\* produisent, les autres non.
+- p\* est le coût variable de la **filière marginale**, ici le
+  `{python} label(eq.marginal)` : `{python} number(eq.price)` €/MWh.
+
+::: {.formel}
+$p^* = \CV_m \;$ si la filière $m$ est marginale.
+:::
+:::
+::::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+Pourquoi si peu d'élasticité : peu de consommateurs voient le prix de gros (prix
+et tarif, module cadre), et peu d'usages se déplacent ou s'abandonnent facilement
+d'une heure à l'autre.
+
+Axe des prix interrompu : la VOLL est hors d'échelle, très au-dessus des coûts
+variables. La pente de la demande entre la VOLL et les prix visibles est stylisée.
+
+Le prix égale le coût marginal du système : produire un MWh de plus coûterait le
+coût variable de la filière marginale. Si la demande coupe la courbe d'offre sur
+une verticale, entre deux paliers, c'est la demande qui fixe le prix.
+:::
+
+## Les surplus
+
+```{python}
+rente = sum(
+    (eq.price - r.cout_variable) * r.capacite
+    for r in dispatch.merit_order(parc).itertuples()
+    if r.fin <= eq.quantity
+)
+```
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=dispatch.FIGSIZE)
+dispatch.equilibrium(ax, parc, demande.loc["normale"], surplus=True)
+style.add_source(fig, "parc et demande illustratifs", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Surplus des consommateurs** : utilité moins ce qu'ils paient.
+
+**Surplus des producteurs** : recettes moins coûts variables. C'est la **rente
+inframarginale** des filières moins chères que la marginale.
+
+Leur somme, le surplus social, est maximale à l'équilibre : on retrouve le choix du
+planificateur.
+:::
+::::
+
+::: {.notes}
+La filière marginale ne dégage aucune rente : son prix couvre juste son coût
+variable. Les filières moins chères gagnent l'écart entre le prix et leur coût
+variable, sur chaque MWh.
+
+Ordre de grandeur dans l'exemple : `{python} number(rente / 1000, 1)` millions
+d'euros de rente sur l'heure, pour les renouvelables et le nucléaire.
+
+C'est cette rente qui doit couvrir les coûts fixes : question du long terme. Le
+surplus des consommateurs est très grand, car la VOLL valorise les usages non
+flexibles : l'électricité vaut bien plus qu'elle ne coûte.
+:::
+
+## Quand le parc ne suffit pas
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=dispatch.FIGSIZE)
+rarete = dispatch.equilibrium(ax, parc, demande.loc["tendue"])
+style.add_source(fig, "parc et demande illustratifs", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+La demande non flexible dépasse la capacité du parc :
+
+- toutes les centrales produisent.
+- le prix n'est plus fixé par une centrale mais par la demande : la **VOLL**.
+- une partie de la consommation est coupée : **énergie non distribuée**
+  (`{python} number(rarete.unserved)` GW).
+
+::: {.formel}
+$p^* = \VOLL, \quad \END = D - \textstyle\sum_i \Pmax_i$
+
+END : énergie non distribuée.
+:::
+:::
+::::
+
+::: {.sigles}
+- TAC : turbine à combustion
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+Délestage : le gestionnaire du réseau coupe des consommateurs pour préserver
+l'équilibre (module système). Le planificateur coupe les usages qui valent le
+moins, en pratique des zones entières, faute de pouvoir trier les usages.
+
+Prix de rareté : toutes les centrales gagnent l'écart entre la VOLL et leur coût
+variable, même la TAC. Ces quelques heures pèsent lourd dans la couverture des
+coûts fixes : long terme et mécanisme de capacité.
+
+Cas intermédiaire : si le parc coupe la partie flexible de la demande, le prix se
+fixe entre le coût de la TAC et la VOLL, au niveau où les consommateurs flexibles
+renoncent.
+:::
+
+## À retenir {partie="Synthèse"}
+
+::: {.a-retenir}
+1. **Court terme** : exploiter un parc, un stockage et un réseau donnés, sans investir.
+2. **Seuls les coûts variables comptent** : combustible, CO₂ et usure pour le gaz,
+   valeur d'usage pour les stocks (hydraulique, nucléaire), coût quasi nul pour les
+   renouvelables.
+3. **Merit order** : les centrales appelées par coût variable croissant forment une
+   courbe d'offre en paliers.
+4. **Prix** : coût variable de la filière marginale. Les filières moins chères touchent
+   une rente inframarginale.
+5. **Rareté** : quand le parc ne suffit pas, le prix monte jusqu'à la valeur de
+   l'énergie non distribuée (VOLL) et une partie de la demande est coupée.
+:::
+
+::: {.notes}
+Faire reformuler par le public avant d'afficher, si le temps le permet.
+:::

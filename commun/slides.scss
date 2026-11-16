@@ -357,3 +357,27 @@ $marques: (
     background: rgba($couleur, 0.07);
   }
 }
+
+// Cartouche de rappel des sigles (`::: {.sigles}` autour d'une liste, en fin de
+// slide) : coin supérieur droit, hors du flux, à côté du titre.
+.reveal .slides section.slide.level2 > .sigles {
+  position: absolute;
+  top: 0;
+  right: 0;
+  max-width: 30%;
+  font-size: 0.38em;
+  line-height: 1.35;
+  padding: 0.35em 0.7em;
+  background: #f1f5f9;
+  border-left: 4px solid $gris-texte;
+  border-radius: 0 6px 6px 0;
+  color: #475569;
+}
+.reveal .slides .sigles ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.reveal .slides .sigles li {
+  margin: 0;
+}

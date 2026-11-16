@@ -109,6 +109,75 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
 - **Précautions** : chiffre de référence repris par RTE d'un bilan à l'autre depuis
   2017 ; pas de valeur plus récente trouvée dans les publications de 2025-2026.
 
+### `couts/prix-gaz-co2.csv`
+
+- **Contenu** : prix annuels publiés par la CRE, 2022 à 2025 : gaz naturel au PEG
+  (`gaz_eur_mwh`, €/MWh de gaz, moyenne des prix *day-ahead*) et quota de CO₂
+  (`co2_eur_t`, €/t, moyenne du contrat de référence de décembre de l'année), avec le
+  minimum et le maximum de l'année pour le CO₂ (`co2_min`, `co2_max`), et l'écart
+  moyen entre le TTF et le PEG *day-ahead* (`ecart_ttf_peg`, €/MWh).
+- **Sources** : CRE, *La surveillance et le fonctionnement des marchés de gros de
+  l'électricité et du gaz naturel*, rapports 2022 (§ 3 p. 31 : CO₂ 81,3 €/t, maximum
+  98 €/t le 19 août, gaz 98,1 €/MWh), 2023 (p. 33 : CO₂ 85,3 €/t entre 66,4 et
+  100,3), 2024 (p. 84 : CO₂ 66,5 €/t entre 52,4 et 77,5) et 2025 (rapport n° 2026-07,
+  synthèse p. 13, p. 64 et annexe : CO₂ 74,9 €/t entre 61,1 et 88,5, gaz 2023-2025).
+  Entrée `cre-surveillance-2025` de `commun/biblio.bib`. Saisie manuelle.
+- **Précautions** : gaz 2023 révisé de 38,8 (rapport 2023) à 38,9 €/MWh (rapport
+  2025), valeur la plus récente retenue. Minimum 2022 du CO₂ non publié (« sous la
+  barre des 60 € »). Prix sources EEX, ICE et Argus, publiés sous forme agrégée par
+  la CRE seulement : aucune série quotidienne ou mensuelle du quota sous licence ouverte.
+- **Mise à jour** : chaque année, depuis le rapport de surveillance suivant.
+
+### `couts/prix-gaz-ttf-mensuel.csv`
+
+- **Contenu** : prix mensuel du gaz naturel en Europe, d'avril 2015 au dernier mois
+  publié : `gaz_usd_mmbtu` ($/mmbtu), `usd_par_eur`, `gaz_eur_mwh` (€/MWh PCS).
+- **Sources** : Banque mondiale, *Commodity Price Data* (Pink Sheet), série « Natural
+  gas, Europe », TTF néerlandais depuis avril 2015, CC BY 4.0. BCE, taux de change
+  EUR/USD mensuel moyen (série EXR.M.USD.EUR.SP00.A).
+- **Traitements** : conversion $/mmbtu → €/MWh (1 mmbtu = 0,293071 MWh), au taux du
+  mois. `couts/telecharger.py` régénère le fichier (`uv run data/couts/telecharger.py`).
+  L'adresse du classeur de la Banque mondiale change chaque année.
+- **Précautions** : la Banque mondiale ne précise pas le contrat (*day-ahead* ou mois
+  suivant). Ses moyennes annuelles sont plus proches du contrat du mois suivant :
+  132 €/MWh en 2022, contre 120 €/MWh pour le TTF *day-ahead* (PEG *day-ahead* plus
+  écart TTF-PEG, CRE). Écart de l'ordre de 1 €/MWh avec les moyennes PEG de la CRE (hub
+  différent), sauf en 2022 où le PEG a coté en moyenne 22,3 €/MWh sous le TTF (CRE,
+  rapport 2022).
+
+### `couts/centrales-gaz.csv` et `couts/gaz-naturel.csv`
+
+- **Contenu** : rendement sur pouvoir calorifique inférieur (`rendement_pci`) et coût
+  variable d'exploitation et de maintenance (VOM, €/MWh électrique) des CCG et des TAC.
+  Constantes du gaz naturel : facteur d'émission (tCO₂/MWh PCI) et rapport PCI/PCS.
+  `pyelec.dispatch.load_gas_plants` en déduit rendement et facteur d'émission par
+  MWh PCS, l'unité des prix du gaz.
+- **Sources** :
+  - rendements (55 % et 35 %) : CRE, rapport de surveillance 2025, note 85 p. 77,
+    « rendement théorique », base non précisée, lue ici en PCI (convention usuelle) ;
+  - facteur d'émission : GIEC, lignes directrices 2006, vol. 2, tableau 1.4,
+    56 100 kgCO₂/TJ PCI, soit 0,202 tCO₂/MWh PCI (`giec-2006-energie`) ;
+  - rapport PCI/PCS de 0,9 : ADEME, Base Carbone, combustion du gaz naturel
+    0,181 kgCO₂e/kWh PCS et 0,201 kgCO₂e/kWh PCI (`ademe-base-carbone`) ;
+  - VOM : ENTSO-E, *ERAA 2024, Annex 1: Assumptions*, tableau 15 (CCGT 2,3 à
+    2,7 €/MWh, milieu de fourchette retenu, OCGT 2,4 €/MWh), `entsoe-eraa-2024-hypotheses`.
+- **Précautions** : la CRE retient 0,198 tCO₂ par MWh de gaz avec un rendement de
+  55 %, sans préciser la base. Le cours travaille en base cohérente (tout par MWh PCS),
+  d'où un coût variable plus élevé d'environ 8 % que celui de la CRE. Une centrale
+  réelle s'écarte des valeurs de référence selon son âge, sa charge et ses démarrages.
+
+### `exemple/parc-court-terme.csv` et `exemple/demande-court-terme.csv`
+
+- **Contenu** : parc illustratif du module court terme, capacité disponible (GW) de
+  quatre filières et valeur d'usage (€/MWh) de celles qui n'achètent pas de
+  combustible. Le coût variable des CCG et des TAC est calculé depuis `couts/`.
+  Demande illustrative pour deux situations : usages non flexibles (GW, valorisés
+  à la VOLL) et largeur de la partie flexible (GW).
+- **Source** : valeurs choisies pour l'exemple, ordres de grandeur d'une heure
+  d'hiver en France sans prétention de réalisme. La valeur d'usage du nucléaire
+  n'est pas calculée.
+- **Licence** : CC BY-SA 4.0.
+
 ## À migrer
 
 - Consommation France et disponibilités horaires 2024 des TP (source ENTSO-E
