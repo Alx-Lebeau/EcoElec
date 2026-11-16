@@ -135,6 +135,7 @@ parcours, une page des séances avec les chapitres du poly à lire.
 ## Rédaction
 
 - Français ; reformulation minimale, tournures impersonnelles, rapport signal/bruit élevé.
+- Pas de point-virgule : couper en deux phrases ou mettre une virgule.
 - Formulations épicènes : « le public », « les élèves », « on » plutôt que « le lecteur », « l'étudiant ».
 - Typographie : guillemets « » ; les espaces insécables avant `: ; ! ?` et dans
   les guillemets sont posées automatiquement au rendu (`typographie.lua`) :

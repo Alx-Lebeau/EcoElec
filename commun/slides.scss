@@ -233,6 +233,14 @@ $presentation-h2-font-size: 1.3em;
   object-fit: contain;
 }
 
+// Figure étirée à toute la largeur de sa colonne (cellule `#| classes: figure-colonne`).
+.reveal .slides .figure-colonne img {
+  width: 100%;
+  height: auto;
+  max-height: 480px;
+  object-fit: contain;
+}
+
 // Liste numérotée de synthèse (`::: {.a-retenir}` autour d'une liste 1. 2. 3.).
 .reveal .slides .a-retenir ol {
   list-style: none;

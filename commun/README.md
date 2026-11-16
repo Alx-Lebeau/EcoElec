@@ -40,6 +40,7 @@ Classes définies dans `slides.scss`, à utiliser dans les `slides.qmd` :
 | `#| classes: schema-focus` | cellule du schéma `pyelec.schema` recoloré : il reste collé sous le titre, à la même place d'une slide à l'autre |
 | `.sous-schema` | texte court sous un schéma ou une figure (taille réduite) |
 | `.figure-large` | figure étirée à toute la largeur, hauteur plafonnée |
+| `#| classes: figure-colonne` | figure étirée à toute la largeur de sa colonne (graphique à côté d'un texte) |
 | `.attention` | mise en garde compacte (icône ⚠) |
 | `.a-retenir` | liste numérotée de la slide « À retenir » qui clôt chaque module |
 | `.transport`, `.distribution`, `.concurrence` | titre en gras coloré comme `pyelec.schema.ACCENTS` |

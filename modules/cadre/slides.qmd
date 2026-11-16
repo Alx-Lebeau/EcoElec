@@ -1,3 +1,451 @@
-## À rédiger
+## Rappel : le système électrique {.rappel module="systeme"}
 
-Module en ébauche.
+- Injections et soutirages s'égalisent à chaque instant : l'équilibre est une
+  condition de fonctionnement.
+- Une demande variable, sensible à la température.
+- Des filières aux propriétés différentes : coûts, disponibilité, pilotabilité.
+- En Europe, production et fourniture en concurrence, réseaux en monopoles régulés.
+
+## Coûts fixes et coûts variables {partie="Coûts et valeurs"}
+
+```{python}
+import matplotlib.pyplot as plt
+
+from pyelec import economie, style
+
+style.use()
+```
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.fixed_and_variable_costs(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Coûts fixes** : ne dépendent pas de la production. Investissement,
+personnel, maintenance programmée (€/MW/an).
+
+**Coûts variables** : proportionnels à la production. Combustible, CO₂,
+usure (€/MWh).
+
+::: {.formel}
+$$
+C(q) = \CF \times \Pmax + \CV \times q
+$$
+:::
+:::
+::::
+
+::: {.notes}
+Partir de la centrale, pas du système. Faire classer des postes de coût par le
+public : uranium, construction, salaires, gaz, quotas de CO₂, démantèlement.
+
+Ce qui est fixe dépend de l'horizon : une centrale construite a des coûts fixes,
+mais la décision de la construire rend tout variable. C'est la distinction entre
+court terme et long terme, reprise par les deux coûts marginaux.
+
+Rappel du module système : les filières diffèrent par leur structure de coûts
+(nucléaire : coûts fixes élevés et coûts variables faibles, turbine à gaz : l'inverse).
+:::
+
+## Fixe ou variable : une question d'horizon {.approfondissement}
+
+- **À court terme**, la centrale existe : son investissement est dépensé, qu'elle
+  produise ou non (coût irrécupérable). Il n'entre pas dans la décision de produire.
+- **À long terme**, rien n'est encore engagé : construire, c'est s'engager sur les
+  coûts fixes pour toute la durée de vie.
+- Un coût d'investissement se ramène à un coût fixe annuel par une **annuité**.
+
+::: {.formel}
+Investissement $I$ (€/MW), durée de vie $n$ ans, taux d'actualisation $r$ :
+
+$$
+\CF = I \, \frac{r}{1 - (1 + r)^{-n}} + \text{coûts fixes d'exploitation}
+$$
+:::
+
+::: {.notes}
+L'annuité est le paiement constant qui rembourse l'investissement, intérêts
+compris, sur la durée de vie. Le taux d'actualisation pèse lourd pour les filières
+à forte intensité capitalistique (nucléaire, éolien en mer) : on y reviendra avec
+le long terme.
+:::
+
+## Coût marginal de court terme
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.short_run_marginal_cost(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Coût de production C(q)** : le coût minimal pour produire q avec le parc
+existant.
+
+**Coût marginal** : coût d'un MWh de plus. Il croît avec q : produire davantage
+mobilise des moyens de plus en plus coûteux.
+
+::: {.formel}
+$$
+C_m(q) = C'(q), \qquad C''(q) > 0
+$$
+:::
+:::
+::::
+
+::: {.notes}
+C(q) est la fonction de coût de l'appareil de production pris dans son ensemble :
+celle d'un gestionnaire qui produirait q au moindre coût. Aucun marché ici : le
+lien avec la centrale « marginale » d'un marché viendra plus tard, et de façon
+explicite.
+
+Le coût de production est l'aire sous la courbe de coût marginal. Les coûts fixes
+n'y figurent pas : à court terme, ils sont dépensés de toute façon. Au-delà de la
+capacité, produire plus est impossible : la question devient celle de la
+consommation non servie.
+
+Version formelle : C strictement convexe, l'hypothèse qui donne à la
+microéconomie ses bonnes propriétés (optimum unique, caractérisé par les
+conditions du premier ordre).
+:::
+
+## Coût marginal de long terme
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.long_run_marginal_cost(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Coût d'un MWh de plus quand on peut adapter le parc.**
+
+- Servir 1 MW de plus pendant h heures : construire 1 MW, puis le faire tourner
+  h heures.
+- Par MWh : coût variable + coûts fixes répartis sur h heures.
+- Plus la hausse de demande est courte, plus ses MWh coûtent cher.
+
+::: {.formel}
+$C_m^{LT}(h) = \CV + \CF / h$
+:::
+:::
+::::
+
+::: {.notes}
+Lecture du graphique. En abscisse, non pas la production, mais la durée pendant
+laquelle la demande augmente de 1 MW dans l'année. Pour la servir, il faut
+construire 1 MW : on paie ses coûts fixes annuels quelle que soit la durée, et son
+coût variable pour chaque heure de marche. Rapporté au MWh, les coûts fixes se
+répartissent sur h heures.
+
+- En ruban (toute l'année) : les coûts fixes se diluent sur 8 760 h, et le coût
+  marginal de long terme dépasse à peine le coût variable.
+- À la pointe (quelques heures) : les mêmes coûts fixes pèsent sur très peu de
+  MWh. Le MWh de pointe coûte très cher.
+
+Message : le coût marginal de long terme n'est pas un nombre, il dépend du profil
+de la demande ajoutée. L'écart avec la bande du bas est ce que le coût marginal de
+court terme ne compte pas.
+
+Le graphique suppose une seule technologie. Avec plusieurs filières, on choisit
+pour chaque durée la moins chère : peu de coûts fixes pour la pointe, peu de coûts
+variables pour le ruban. Ce sont les courbes de filtrage du module long terme, à
+ne pas développer ici.
+:::
+
+## L'utilité des consommateurs
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.marginal_utility(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Utilité** : valeur retirée de l'électricité, mesurée en euros par la
+**disposition à payer**.
+
+**Utilité marginale** : valeur du dernier MWh consommé. Elle décroît, car les
+usages les plus précieux passent en premier.
+
+::: {.formel}
+$U(q) = \int_0^q U'(x) \, \mathrm{d}x$
+:::
+:::
+::::
+
+::: {.notes}
+Disposition à payer : le montant maximal qu'un consommateur accepterait de payer
+pour ce MWh plutôt que de s'en passer. C'est l'équivalent monétaire de l'utilité, et
+la courbe d'utilité marginale est la courbe de demande.
+
+Objections fréquentes, à accueillir :
+
+- « La valeur d'un hôpital ne se réduit pas à un prix » : la disposition à payer
+  n'est pas un jugement moral, elle mesure ce à quoi on renonce pour consommer.
+  Pour les usages vitaux, elle est très élevée.
+- « Un euro ne vaut pas autant pour tout le monde » : exact. Additionner des
+  dispositions à payer revient à donner le même poids à chaque euro, donc plus de
+  poids aux plus riches. Le surplus mesure l'efficacité, la répartition se traite
+  à part (tarifs sociaux, chèque énergie).
+
+Courbe générique : sa forme propre à l'électricité (VOLL, usages flexibles) est
+décrite dans le module court terme.
+:::
+
+## Prix et tarif
+
+:::: {.columns}
+::: {.column width="50%"}
+**Prix**
+
+- Montant par MWh échangé sur un marché.
+- Résulte de l'offre et de la demande.
+- Varie à chaque pas du marché de gros.
+:::
+::: {.column width="50%"}
+**Tarif**
+
+- Barème du consommateur final, fixé à l'avance.
+- Abonnement (puissance) et part variable (kWh).
+- Réglementé ou contractuel.
+
+::: {.formel}
+$$
+\text{facture} = a \, P_{\text{souscrite}} + b \, E
+$$
+:::
+:::
+::::
+
+::: {.attention}
+Les consommateurs voient le tarif, pas le prix de gros : leur demande y réagit peu.
+:::
+
+::: {.notes}
+Le tarif peut transmettre une partie du signal prix : heures pleines et heures
+creuses, offres à pointe mobile, offres indexées sur le prix de gros. Mais la
+plupart des ménages paient un prix par kWh constant sur des mois.
+
+Réglementé : tarifs réglementés de vente, tarifs d'utilisation des réseaux.
+Contractuel : offres de marché des fournisseurs.
+
+Les tarifs de réseau (TURPE) seront vus dans le module réseaux, les tarifs
+réglementés de vente dans le module market design.
+:::
+
+## Le surplus social {partie="Surplus et optimum"}
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.welfare(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Surplus social** : utilité des consommateurs moins coûts de production. C'est l'aire
+entre les deux courbes, jusqu'à la quantité q.
+
+Un MWh de plus ajoute son utilité marginale et coûte son coût marginal.
+
+::: {.formel}
+$$
+\begin{aligned}
+W(q) &= U(q) - C(q) \\
+W'(q) &= U'(q) - C'(q)
+\end{aligned}
+$$
+:::
+:::
+::::
+
+::: {.notes}
+Le surplus se mesure en euros grâce à la disposition à payer : c'est ce qui permet
+de soustraire les coûts de l'utilité.
+
+Aucun prix ni aucun marché à ce stade : le surplus est une propriété de
+l'allocation (qui produit, qui consomme), quelle que soit l'organisation qui la
+met en œuvre.
+:::
+
+## L'optimum
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.optimum(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Un MWh de plus ne vaut la peine que s'il apporte plus qu'il ne coûte.
+
+- Avant q\* : utilité marginale > coût marginal, le surplus augmente.
+- Après q\* : chaque MWh coûte plus qu'il n'apporte.
+
+**Optimum de premier rang** (*first best*) : utilité marginale = coût marginal.
+
+::: {.formel}
+$\max_q W(q) \;\Rightarrow\; U'(q^*) = C'(q^*)$
+:::
+:::
+::::
+
+::: {.notes}
+Insister : c'est le raisonnement marginal qui fait tout. On ajoute des MWh tant
+que chacun rapporte plus qu'il ne coûte. Le dernier MWh utile est celui pour
+lequel les deux s'égalisent. Faire décrire par le public ce qui se passe si l'on
+s'arrête avant q\* (surplus non réalisé) ou si l'on va au-delà (perte hachurée).
+
+Version formelle : condition du premier ordre de $\max_q U(q) - C(q)$, soit
+$W'(q^*) = 0$. $W$ est concave car l'utilité marginale décroît et le coût
+marginal croît.
+
+« Premier rang » : sans autre contrainte que la technique et les préférences. Un
+optimum de second rang tient compte de contraintes supplémentaires (information,
+régulation, budget). C'est la référence pour juger toute organisation du secteur.
+
+Courbes lisses de la théorie. Avec un coût marginal en escalier, l'égalité devient
+un encadrement (module court terme).
+:::
+
+## Le planificateur et le marché {partie="Planificateur et marché"}
+
+:::: {.columns}
+::: {.column width="50%"}
+**Planificateur social bienveillant**
+
+- Connaît tous les coûts et toutes les utilités.
+- Décide de la production, de la consommation et du parc.
+- Atteint le *first best* par construction.
+
+::: {.formel}
+$$
+\max_q \; U(q) - C(q)
+$$
+:::
+:::
+::: {.column width="50%"}
+**Marché**
+
+- Chacun décide pour soi, au prix observé.
+- Les producteurs maximisent leur profit, les consommateurs leur utilité nette.
+- Personne ne vise le surplus social.
+:::
+::::
+
+::: {.notes}
+Le planificateur est une référence théorique, pas une institution : il sert à
+mesurer ce que perd une organisation donnée. Le monopole intégré du module système
+s'en rapproche dans son principe (planification), pas nécessairement dans ses
+résultats (information, incitations).
+
+Retour sur le troisième sens de « décentralisé » vu dans le module système :
+décisions dispersées, coordonnées par les prix.
+:::
+
+## L'équilibre de marché
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.market(ax)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+- Producteurs : produisent tant que le prix couvre le coût marginal.
+- Consommateurs : consomment tant que l'utilité marginale dépasse le prix.
+
+Au prix p\*, offre = demande en q\* : on retrouve l'optimum, et le
+prix **partage** le surplus.
+
+::: {.formel}
+$$
+C'(q^*) = p^* = U'(q^*)
+$$
+:::
+:::
+::::
+
+::: {.notes}
+Programmes : le producteur maximise $p\,q - C(q)$, d'où $p = C'(q)$. Le
+consommateur maximise $U(q) - p\,q$, d'où $U'(q) = p$.
+
+En théorie, avec des marchés concurrentiels, l'équilibre est un optimum (premier
+théorème de l'économie du bien-être, admis). Le prix ne change pas le surplus
+total, il le répartit entre consommateurs et producteurs.
+
+Le surplus des producteurs (rente inframarginale) est la question du long terme :
+suffit-il à couvrir les coûts fixes des centrales ?
+:::
+
+## Le marché atteint-il le *first best* ?
+
+:::: {.columns}
+::: {.column width="50%"}
+**À court terme** : le parc est donné
+
+Le marché fait-il produire les centrales les moins coûteuses, et servir les
+usages qui valent le plus ?
+:::
+::: {.column width="50%"}
+**À long terme** : le parc se choisit
+
+Les prix couvrent-ils les coûts fixes du parc optimal ? Investit-on assez, et
+dans les bonnes filières ?
+:::
+::::
+
+::: {.approfondissement}
+Hypothèses à vérifier : concurrence parfaite, prix libres de refléter la rareté, demande qui réagit au prix, pas d'effet externe sans prix
+(CO₂), information complète, pas de rendements croissants (réseaux).
+:::
+
+::: {.notes}
+Ces deux questions structurent la suite du cours : module court terme, puis
+module long terme. Laisser le public proposer des raisons pour lesquelles le
+marché pourrait s'écarter du planificateur : pouvoir de marché, plafonds de prix,
+demande qui ne voit pas le prix, pollution, monopole naturel des réseaux.
+:::
+
+## À retenir {partie="Synthèse"}
+
+::: {.a-retenir}
+1. **Coûts** : fixes ou variables selon l'horizon. Le coût marginal de court terme croît
+   avec la production. À long terme, il
+   inclut les coûts fixes de la capacité ajoutée.
+2. **Valeur** : l'utilité se mesure en euros par la disposition à payer, et
+   l'utilité marginale décroît.
+3. **Prix et tarif** : le prix se forme sur un marché, le tarif est le barème
+   payé par le consommateur final.
+4. **Optimum** : utilité marginale = coût marginal, et le surplus social y est
+   maximal (*first best*). Un marché concurrentiel le retrouve en théorie.
+5. **La question du cours** : le marché atteint-il l'optimum du planificateur
+   bienveillant, à court terme et à long terme ?
+:::
+
+::: {.notes}
+Faire reformuler par le public avant d'afficher, si le temps le permet.
+:::

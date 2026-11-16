@@ -7,6 +7,7 @@ Utilisé par le poly, les slides et les notebooks :
 - `schema` : schéma du système électrique, recoloré par groupes d'éléments ;
 - `organisation` : flux physiques et contractuels, chaîne amont-aval, parts de marché ;
 - `lois` : équilibre injections-soutirages et répartition des flux (Kirchhoff).
+- `economie` : graphiques conceptuels (coûts, utilité, équilibre, surplus).
 
 Les briques de modélisation (dispatch, investissement) arriveront avec la
 migration des modules.

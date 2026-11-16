@@ -114,3 +114,42 @@ def test_variabilite_pente_thermosensible():
     fig = plt.figure()
     assert abs(load_variability(fig, load, temperature) - 2) < 1e-6
     plt.close(fig)
+
+
+def test_graphiques_economie():
+    from pyelec import economie
+
+    q, _ = economie.optimum_point()
+    assert abs(economie.marginal_cost(q) - economie.marginal_utility_curve(q)) < 1e-9
+    assert 0 < q < economie.Q_MAX
+    # forme électrique : VOLL, puis partie affine sur laquelle tombe l'optimum
+    qv, _ = economie.optimum_point(voll=True)
+    assert abs(economie.marginal_cost(qv) - economie.marginal_utility_curve(qv, True)) < 1e-9
+    assert economie.Q_RIGID < qv < economie.Q_SATED
+    assert economie.marginal_utility_curve(0, voll=True) == economie.VOLL
+    assert economie.marginal_utility_curve(economie.Q_MAX, voll=True) == 0
+    for draw in [
+        economie.fixed_and_variable_costs,
+        economie.short_run_marginal_cost,
+        economie.merit_order_steps,
+        economie.long_run_marginal_cost,
+        economie.marginal_utility,
+        economie.welfare,
+        economie.optimum,
+        economie.market,
+    ]:
+        fig, ax = plt.subplots()
+        draw(ax)
+        assert ax.lines and not ax.get_xticks().size
+        plt.close(fig)
+    fig = plt.figure()
+    economie.marginal_cost_zoom(fig)
+    far, near = fig.axes
+    assert near.get_xlim()[1] - near.get_xlim()[0] < far.get_xlim()[1] / 5  # vue rapprochée
+    plt.close(fig)
+    for voll in (False, True):
+        fig, ax = plt.subplots()
+        assert economie.optimum(ax, voll=voll) == economie.optimum_point(voll)
+        economie.market(ax, voll=voll)
+        economie.marginal_utility(ax, voll=voll)
+        plt.close(fig)

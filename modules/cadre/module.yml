@@ -1,7 +1,11 @@
 titre: "Le cadre d'analyse économique"
-prerequis: [systeme]                 # à confirmer (banque de modules)
-objectifs: []
+prerequis: [systeme]
+objectifs:
+  - Distinguer coûts fixes, variables et marginaux, à court et à long terme
+  - Définir l'utilité des consommateurs, le prix et le tarif
+  - Caractériser l'optimum (first best) et le surplus social
+  - Comparer le planificateur bienveillant et l'équilibre de marché
 durees:                              # en minutes
-  essentiel: {intuitif: null, formel: null}
+  essentiel: {intuitif: 20, formel: 25}
   complet:   {intuitif: null, formel: null}
 tp: []

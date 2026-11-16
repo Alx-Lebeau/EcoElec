@@ -1,3 +1,100 @@
-## À rédiger
+## En vrac : matériau venu du module cadre
 
-Module en ébauche.
+```{python}
+import matplotlib.pyplot as plt
+
+from pyelec import economie, style
+
+style.use()
+```
+
+Slides déplacées du module cadre, à intégrer et à réécrire.
+
+## L'utilité des consommateurs et la VOLL
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=economie.FIGSIZE)
+economie.marginal_utility(ax, voll=True)
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Utilité** : valeur retirée de l'électricité, mesurée en euros par la
+**disposition à payer**.
+
+**Utilité marginale**, valeur du dernier MWh :
+
+- Usages non flexibles : une coupure coûte la **VOLL**.
+- Usages flexibles : abandonnés si le prix monte.
+
+::: {.formel}
+$U(q) = \int_0^q U'(x) \, \mathrm{d}x$
+:::
+:::
+::::
+
+::: {.notes}
+Disposition à payer : le montant maximal qu'un consommateur accepterait de payer
+pour ce MWh plutôt que de s'en passer. C'est l'équivalent monétaire de l'utilité, et
+la courbe d'utilité marginale est la courbe de demande.
+
+Objections fréquentes, à accueillir :
+
+- « La valeur d'un hôpital ne se réduit pas à un prix » : la disposition à payer
+  n'est pas un jugement moral, elle mesure ce à quoi on renonce pour consommer.
+  Pour les usages vitaux, elle est très élevée, d'où la VOLL.
+- « Un euro ne vaut pas autant pour tout le monde » : exact. Additionner des
+  dispositions à payer revient à donner le même poids à chaque euro, donc plus de
+  poids aux plus riches. Le surplus mesure l'efficacité, la répartition se traite
+  à part (tarifs sociaux, chèque énergie).
+
+VOLL (*value of lost load*, valeur de l'énergie non distribuée) : valeur moyenne
+d'un MWh coupé (perte de production, d'activité, de confort). Elle est estimée par
+enquêtes auprès des consommateurs et bien supérieure aux coûts de production
+habituels. Coût d'une défaillance : $\VOLL \times \END$. Elle fixe le critère de sécurité d'approvisionnement (modules court
+terme, long terme et capacité).
+
+Partie flexible pentue : à court terme, la consommation réagit peu au prix, car
+peu de consommateurs le voient (transition vers prix et tarif) et peu d'usages se
+déplacent facilement.
+:::
+
+## Continu ou en paliers ?
+
+::: {.figure-large}
+```{python}
+fig = plt.figure(figsize=(11, 2.5))
+economie.marginal_cost_zoom(fig)
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+**Théorie** : le continu, de nombreuses unités aux coûts différents.
+**Applications** : les paliers. Le coût marginal est le coût variable de la
+centrale la plus chère nécessaire.
+[En paliers, C n'est ni strictement convexe ni dérivable : $U' = C'$ devient un
+encadrement.]{.formel}
+:::
+
+::: {.notes}
+Le cadre continu suppose une infinité de petites unités, chacune négligeable, aux
+coûts différents. Ou bien un regard d'assez loin pour ne plus voir les ruptures.
+De près, elles réapparaissent, et le merit order des modules suivants travaille
+précisément avec ces paliers.
+
+Au-delà des paliers, de vraies non-convexités, qui posent des problèmes pratiques :
+
+- coûts de démarrage et minimums techniques : une centrale ne produit pas
+  n'importe quelle quantité, ni gratuitement à partir de zéro.
+- investissements indivisibles : on construit une centrale entière, pas un MW à
+  la fois.
+
+Conséquences, traitées plus loin : il peut ne pas exister de prix qui soutienne
+l'optimum (court terme, compléments de rémunération), et le parc optimal se
+construit par blocs (long terme).
+:::
+
