@@ -14,13 +14,14 @@ investissement, régulation. Un seul projet [Quarto](https://quarto.org) produit
 ## Principe
 
 Le cours est une **banque de modules**. Chaque format (3h, 6h, 12h) ou session
-réelle y pioche au moyen d'un **parcours**. Chaque module existe en quatre
-versions tirées d'une seule source :
+réelle y pioche au moyen d'un **parcours**. Chaque module a une **base**
+(graphiques, raisonnements, ordres de grandeur) et deux **options** qu'un parcours
+ajoute ou non :
 
-|              | intuitif | formel |
-|--------------|----------|--------|
-| **essentiel** (≈ 30 min) | graphiques, raisonnements, ordres de grandeur | + formulation mathématique |
-| **complet** (≈ 1h30)     | + approfondissements | + approfondissements et démonstrations |
+| Option | Ajoute |
+|---|---|
+| `approfondissement` | les développements au-delà de l'essentiel |
+| `formel` | la formulation mathématique et les démonstrations |
 
 Le poly, lui, est unique et complet : chaque parcours renvoie aux chapitres utiles.
 
@@ -62,7 +63,7 @@ uv run ecoelec generer
 # Poly (HTML + PDF) → _rendu/poly/
 uv run quarto render --profile poly
 
-# Slides : decks des parcours, quatre versions et vue auteur de chaque module → _rendu/slides/
+# Slides : decks des parcours ; base, intégrale et vue auteur de chaque module → _rendu/slides/
 uv run quarto render --profile slides
 
 # Decks des parcours en HTML autonome → _rendu/autonome/
@@ -80,13 +81,12 @@ affiche tout le contenu, chaque marque signalée par un bandeau de couleur.
 
 ## Marques
 
-Tout contenu non marqué apparaît dans toutes les versions.
+Tout contenu non marqué forme la base du module et apparaît partout.
 
 | Marque | Visible dans |
 |---|---|
-| `.approfondissement` | la version complète seulement |
-| `.formel` | la version formelle seulement |
-| `.intuitif` | la version intuitive seulement |
+| `.approfondissement` | les parcours qui prennent l'option `approfondissement` |
+| `.formel` | les parcours qui prennent l'option `formel` |
 | `.rappel` | les parcours où un module prérequis ne précède pas ce module |
 
 Une marque s'applique à une slide entière (`## Titre {.formel}`) ou à un bloc

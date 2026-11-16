@@ -276,10 +276,8 @@ Interconnexions : le réseau français est relié à ceux de ses voisins ; les
 - Transporter loin et en grande quantité : très haute tension, pertes réduites.
 - Livrer à chacun : tension abaissée par étapes, jusqu'aux 230 V domestiques.
 
-::: {.intuitif}
 À puissance transportée égale, élever la tension réduit le courant, donc
 l'échauffement des câbles et les pertes.
-:::
 
 ::: {.formel}
 Une ligne de résistance $R$ transporte une puissance $P = U I$. Les pertes

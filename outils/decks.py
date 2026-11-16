@@ -1,13 +1,14 @@
 """Génération des decks dans decks/ (dossier généré, non versionné).
 
-    decks/modules/<module>/<profondeur>-<formalisme>.qmd   les quatre versions de chaque module
+    decks/modules/<module>/base.qmd                        la base seule, sans option
+    decks/modules/<module>/integral.qmd                    la base et toutes les options
     decks/modules/<module>/auteur.qmd                      vue auteur : tout, marques visibles
     decks/parcours/<parcours>/seance-NN.qmd                un deck par séance
     decks/parcours/<parcours>/index.qmd                    séances, durées, chapitres du poly à lire
     decks/index.qmd                                        page d'accueil des slides
 
 Chaque deck inclut le contenu des modules (`{{< include >}}`) précédé d'un
-marqueur de version lu par commun/filtres/marques.lua.
+marqueur d'options lu par commun/filtres/marques.lua.
 
 Empreinte : `freeze: auto` ne réexécute un document que si son propre texte
 change, pas celui des fichiers qu'il inclut. Chaque deck porte donc dans ses
@@ -21,18 +22,15 @@ from pathlib import Path
 
 import yaml
 
-from outils import DEPTHS, FORMALISMS
+from outils import OPTIONS, options_label
 from outils.catalog import Module
 from outils.tracks import Entry, Session, Track
 
 OUTPUT = "decks"
 STAMP = ".genere-par-ecoelec"
-LABELS = {
-    "essentiel": "essentielle",
-    "complet": "complète",
-    "intuitif": "intuitive",
-    "formel": "formelle",
-}
+# Decks isolés de chaque module : les deux extrêmes. Les combinaisons intermédiaires
+# sont rendues par les decks des parcours qui les utilisent.
+MODULE_DECKS = {"base": (), "integral": OPTIONS}
 
 
 # Sources communes à tous les decks qui exécutent du code
@@ -88,21 +86,15 @@ def _front_matter(**fields) -> str:
     return f"---\n{dumped}---\n"
 
 
-def _version_label(depth: str, formalism: str) -> str:
-    return f"Version {LABELS[depth]}, {LABELS[formalism]}"
-
-
-def _marker(module: Module, depth: str, formalism: str, missing: list[str]) -> str:
+def _marker(module: Module, options, missing: list[str]) -> str:
     return (
-        f'::: {{.ecoelec-module module="{module.id}" profondeur="{depth}" '
-        f'formalisme="{formalism}" manquants="{" ".join(missing)}"}}\n:::\n'
+        f'::: {{.ecoelec-module module="{module.id}" options="{" ".join(options)}" '
+        f'manquants="{" ".join(missing)}"}}\n:::\n'
     )
 
 
-def _module_body(
-    module: Module, depth: str, formalism: str, missing: list[str], section_title: bool
-) -> str:
-    parts = [_marker(module, depth, formalism, missing)]
+def _module_body(module: Module, options, missing: list[str], section_title: bool) -> str:
+    parts = [_marker(module, options, missing)]
     if section_title:
         parts.append(f"# {module.title} {{.titre-module}}\n")
     if module.objectives:
@@ -122,23 +114,22 @@ def _module_decks(root: Path, out: Path, module: Module) -> list[Path]:
     missing = list(module.prerequisites)
     fingerprint = _fingerprint(root, [f"modules/{module.id}/slides.qmd"])
     written = []
-    for depth in DEPTHS:
-        for formalism in FORMALISMS:
-            front = _front_matter(
-                title=module.title,
-                subtitle=_version_label(depth, formalism),
-                footer=module.title,
-                ecoelec={"vue": "version", "empreinte": fingerprint},
-            )
-            body = _module_body(module, depth, formalism, missing, section_title=False)
-            written.append(_write(folder / f"{depth}-{formalism}.qmd", _deck(front, [body])))
+    for name, options in MODULE_DECKS.items():
+        front = _front_matter(
+            title=module.title,
+            subtitle=options_label(options).capitalize(),
+            footer=module.title,
+            ecoelec={"vue": "version", "empreinte": fingerprint},
+        )
+        body = _module_body(module, options, missing, section_title=False)
+        written.append(_write(folder / f"{name}.qmd", _deck(front, [body])))
     front = _front_matter(
         title=module.title,
         subtitle="Vue auteur",
         footer=f"{module.title} — vue auteur",
         ecoelec={"vue": "auteur", "empreinte": fingerprint},
     )
-    body = _module_body(module, "complet", "formel", missing, section_title=False)
+    body = _module_body(module, OPTIONS, missing, section_title=False)
     written.append(_write(folder / "auteur.qmd", _deck(front, [body])))
     return written
 
@@ -163,11 +154,7 @@ def _session_deck(root: Path, track: Track, session: Session) -> str:
     if len(session.entries) > 1:
         blocks.append(_agenda(session))
     for entry in session.entries:
-        blocks.append(
-            _module_body(
-                entry.module, entry.depth, entry.formalism, entry.missing, section_title=True
-            )
-        )
+        blocks.append(_module_body(entry.module, entry.options, entry.missing, section_title=True))
     if session.conclusion:
         blocks.append(f"{{{{< include /{session.conclusion} >}}}}\n")
     return _deck(front, blocks)
@@ -190,7 +177,7 @@ def _minutes(value: int | None) -> str:
 def _entry_line(entry: Entry, chapter_prefix: str) -> str:
     line = (
         f"[{entry.module.title}]({chapter_prefix}modules/{entry.module.id}/poly.html) — "
-        f"{LABELS[entry.depth]}, {LABELS[entry.formalism]} ({_minutes(entry.duration)})"
+        f"{options_label(entry.options)} ({_minutes(entry.duration)})"
     )
     if entry.missing:
         line += f" — rappels : {', '.join(entry.missing)}"
@@ -200,10 +187,11 @@ def _entry_line(entry: Entry, chapter_prefix: str) -> str:
 def _track_index(track: Track) -> str:
     # Depuis _rendu/slides/decks/parcours/<nom>/ jusqu'au poly, rendu dans _rendu/poly/
     chapter_prefix = "../../../../poly/"
+    total = sum(s.duration for s in track.sessions)
     lines = [
         _front_matter(title=track.title, subtitle=f"Parcours {track.name}", format="html").rstrip(),
         "",
-        f"Formalisme : {track.formalism}. Durée totale : {sum(s.duration for s in track.sessions)} min.",
+        f"Modules : {options_label(track.options)}. Durée totale : {total} min.",
         "",
     ]
     for session in track.sessions:
@@ -231,9 +219,8 @@ def _site_index(modules: dict[str, Module], tracks: list[Track]) -> str:
     lines += ["", "## Modules", ""]
     for module in modules.values():
         versions = " · ".join(
-            f"[{LABELS[d]}, {LABELS[f]}](modules/{module.slug}/{d}-{f}.html)"
-            for d in DEPTHS
-            for f in FORMALISMS
+            f"[{options_label(options)}](modules/{module.slug}/{name}.html)"
+            for name, options in MODULE_DECKS.items()
         )
         lines.append(
             f"- **{module.title}** ({module.id}) : {versions} · [vue auteur](modules/{module.slug}/auteur.html)"

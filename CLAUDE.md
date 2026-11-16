@@ -10,9 +10,10 @@ Cours modulaire d'économie de l'électricité. Un seul projet Quarto produit le
 poly (livre HTML + PDF), les slides (reveal.js, un deck par séance, aussi en HTML
 autonome et en PDF) et les TP (notebooks). Le cours est une banque de modules ;
 chaque format (3h, 6h, 12h) ou session y pioche au moyen d'un parcours. Chaque
-module existe en quatre versions tirées d'une seule source : profondeur
-(*essentiel* / *complet*) × formalisme (*intuitif* / *formel*). Le mot « avancé »
-est proscrit : il confond les deux axes.
+module a une *base* (contenu non marqué, présent partout) et deux *options* qu'un
+parcours ajoute ou non : `approfondissement` et `formel`. Le mot « avancé » est
+proscrit : il confond les deux options. « Socle » désigne les modules communs à
+tous les formats, pas la base d'un module.
 
 ## Commandes
 
@@ -57,12 +58,13 @@ titre: "Équilibre de court terme et formation des prix"
 prerequis: [systeme]          # identifiants de modules
 objectifs:                    # affichés en ouverture du module dans chaque deck
   - Construire un merit order et en déduire le prix
-durees:                       # minutes ; null tant que non estimées
-  essentiel: {intuitif: 30, formel: 40}
-  complet:   {intuitif: 75, formel: 90}
+duree: 30                     # minutes de la base ; null tant que non estimée
+supplements: {approfondissement: 45, formel: 10}   # minutes ajoutées par option
 tp: [tp-court-terme]          # notebooks modules/<id>/tp/<tp>.ipynb
 ```
 
+- `supplements` est facultatif. Une option sans supplément compte pour 0 si les
+  slides n'ont pas la marque correspondante, sinon sa durée est « à estimer ».
 - Un module n'a ni introduction ni conclusion générales : elles appartiennent au
   parcours (clés `introduction` et `conclusion` d'une séance). Il se termine en
   revanche par une slide « À retenir » propre au module (`::: {.a-retenir}` autour
@@ -70,27 +72,31 @@ tp: [tp-court-terme]          # notebooks modules/<id>/tp/<tp>.ipynb
 - `poly.qmd` commence par `# Titre {#sec-<id>}` puis l'inclusion des macros.
   Tout nouveau chapitre est ajouté à la liste de `_quarto-poly.yml` (`ecoelec verifier` le contrôle).
 - `slides.qmd` ne contient que des slides `##`, sans en-tête YAML : le générateur
-  ajoute le titre du module, les objectifs et la version.
+  ajoute le titre du module, les objectifs et les options.
 
 ## Marques (slides)
 
 | Marque | Visible dans |
 |---|---|
-| `.approfondissement` | la version complète seulement |
-| `.formel` | la version formelle seulement |
-| `.intuitif` | la version intuitive seulement (phrases de liaison) |
+| `.approfondissement` | les decks qui prennent l'option `approfondissement` |
+| `.formel` | les decks qui prennent l'option `formel` |
 | `.rappel` | les parcours où un prérequis ne précède pas le module ; `module="id"` pour un prérequis précis |
 
 - Slide entière : `## Titre {.formel}` (jusqu'au titre suivant de même niveau ou au `---` suivant).
-- Bloc : `::: {.formel}` … `:::`. Passage : `[texte]{.intuitif}`.
+- Bloc : `::: {.formel}` … `:::`. Passage : `[texte]{.formel}`.
 - Marques cumulées sur un élément : visible seulement si toutes le sont.
 - **Règle d'or** : un contenu non marqué ne s'appuie jamais sur un contenu marqué
-  (pas de renvoi `@eq-…` vers une équation `.formel` depuis du texte commun). La CI
-  rend les quatre versions de chaque module et échoue sur tout renvoi non résolu.
+  (pas de renvoi `@eq-…` vers une équation `.formel` depuis du texte commun), et
+  un contenu `.formel` ne s'appuie pas sur un contenu `.approfondissement` (ni
+  l'inverse) sans porter les deux marques. La CI rend chaque module en base seule
+  (`base`) et avec toutes les options (`integral`), plus les decks des parcours,
+  et échoue sur tout renvoi non résolu.
+- Pas de marque `.intuitif` : la base tient seule, sans phrase de liaison réservée
+  aux decks sans maths (`ecoelec verifier` refuse la marque).
 - Le formalisme s'ajoute à l'intuition : graphique et raisonnement communs, maths en surcouche.
 - Vérifier dans la vue auteur (`_rendu/slides/decks/modules/<id>/auteur.html`) que
-  le discours tient dans chaque version, et dans chaque version qu'aucune slide ne
-  déborde à 1280 × 720 (taille de projection).
+  le discours tient avec ou sans chaque option, et dans `base` comme dans `integral`
+  qu'aucune slide ne déborde à 1280 × 720 (taille de projection).
 - Parties d'un module : `## Titre {partie="Système physique"}` sur la première slide
   de chaque partie (étiquette et barre de progression, filtre `parties.lua`).
 - Mise en page : classes de `commun/slides.scss` (`schema-focus`, `sous-schema`,
@@ -103,14 +109,17 @@ Poly : pas de marques. Les développements mathématiques vont dans
 
 ```yaml
 titre: Comprendre le prix de l'électricité
-formalisme: intuitif                 # pour tout le parcours
+options: [formel]                    # facultatif, pour tout le parcours
 seances:
   - titre: Du merit order au prix de long terme
     duree: 90
     modules:
-      - court-terme: essentiel
-      - long-terme: {profondeur: complet, formalisme: formel}   # exception
+      - court-terme
+      - long-terme: {avec: approfondissement}   # exception : option en plus
+      - cadre: {sans: formel}                   # exception : option en moins
 ```
+
+Sans `options`, le parcours ne prend que la base de chaque module.
 
 `ecoelec generer` vérifie que les durées tiennent dans chaque séance, signale les
 prérequis absents (les slides `.rappel` sont alors incluses) et produit, par

@@ -17,12 +17,12 @@ ecoelec:
   vue: {vue}
 ---
 
-::: {{.ecoelec-module module="m" profondeur="{depth}" formalisme="{formalism}" manquants="{missing}"}}
+::: {{.ecoelec-module module="m" options="{options}" manquants="{missing}"}}
 :::
 
 ## Commune
 
-Texte commun[ et liaison]{{.intuitif}}.
+Texte commun[ et notation]{{.formel}}.
 
 ::: {{.formel}}
 Bloc formel.
@@ -70,14 +70,14 @@ def render(filter_name: str, markdown: str, to: str = "markdown") -> str:
     return result.stdout
 
 
-def deck(vue="version", depth="essentiel", formalism="intuitif", missing="") -> str:
-    md = DECK.format(vue=vue, depth=depth, formalism=formalism, missing=missing)
+def deck(vue="version", options="", missing="") -> str:
+    md = DECK.format(vue=vue, options=options, missing=missing)
     return render("marques.lua", md)
 
 
-def test_essential_intuitive():
-    out = deck(depth="essentiel", formalism="intuitif", missing="systeme")
-    assert "et liaison" in out
+def test_base_only():
+    out = deck(missing="systeme")
+    assert "Texte commun." in out
     assert "Bloc formel" not in out
     assert "Démonstration" not in out and "Contenu de la démonstration" not in out
     assert "Approfondie" not in out
@@ -85,30 +85,37 @@ def test_essential_intuitive():
     assert "Finale" in out
 
 
-def test_complete_formal():
-    out = deck(depth="complet", formalism="formel")
-    assert "et liaison" not in out
+def test_all_options():
+    out = deck(options="approfondissement formel")
+    assert "et notation" in out
     assert "Bloc formel" in out and "Contenu de la démonstration" in out
     assert "Contenu approfondi" in out
     assert "Rappel" not in out
 
 
+def test_single_option():
+    out = deck(options="formel")
+    assert "Bloc formel" in out and "Contenu approfondi" not in out
+    out = deck(options="approfondissement")
+    assert "Bloc formel" not in out and "Contenu approfondi" in out
+
+
 def test_author_view_keeps_everything_with_visible_marks():
     out = deck(vue="auteur")
     for text in [
-        "et liaison",
+        "et notation",
         "Bloc formel",
         "Rappel autre",
         "Contenu de la démonstration",
         "Contenu approfondi",
     ]:
         assert text in out
-    for mark in ["marque-intuitif", "marque-formel", "marque-rappel", "marque-approfondissement"]:
+    for mark in ["marque-formel", "marque-rappel", "marque-approfondissement"]:
         assert mark in out
 
 
 LIST = """\
-::: {{.ecoelec-module module="m" profondeur="{depth}" formalisme="intuitif" manquants=""}}
+::: {{.ecoelec-module module="m" options="{options}" manquants=""}}
 :::
 
 ## Liste
@@ -124,14 +131,14 @@ Paragraphe[ approfondi]{{.approfondissement}}.
 
 
 def test_no_empty_bullet_when_item_hidden():
-    out = render("marques.lua", LIST.format(depth="essentiel"))
+    out = render("marques.lua", LIST.format(options=""))
     assert "point approfondi" not in out
     assert "premier point" in out and "dernier point" in out
     lines = [line.strip() for line in out.splitlines()]
     assert "-" not in lines  # aucune puce vide
     assert out.count("- ") == 2  # la liste entièrement masquée disparaît
     assert "Paragraphe." in out
-    full = render("marques.lua", LIST.format(depth="complet"))
+    full = render("marques.lua", LIST.format(options="approfondissement"))
     assert "point approfondi" in full and full.count("- ") == 4
 
 

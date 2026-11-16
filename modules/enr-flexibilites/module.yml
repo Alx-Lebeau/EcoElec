@@ -1,7 +1,5 @@
 titre: "ENR et flexibilités"
 prerequis: []                        # à définir
 objectifs: []
-durees:                              # en minutes
-  essentiel: {intuitif: null, formel: null}
-  complet:   {intuitif: null, formel: null}
+duree: null                          # minutes de la base
 tp: []

@@ -9,7 +9,7 @@
 | `poly.scss` | Thème HTML du poly. |
 | `slides.scss` | Thème des slides, dont les bandeaux de la vue auteur. |
 | `filtres/parties.lua` | Parties d'un module (`## Titre {partie="…"}`) : étiquette au-dessus du titre, barre de progression par partie. |
-| `filtres/marques.lua` | Marques `.approfondissement`, `.formel`, `.intuitif`, `.rappel` des slides. |
+| `filtres/marques.lua` | Marques `.approfondissement`, `.formel`, `.rappel` des slides. |
 | `filtres/formalisation.lua` | Encadrés « Formalisation » du poly. |
 | `filtres/typographie.lua` | Espaces insécables de la typographie française. |
 

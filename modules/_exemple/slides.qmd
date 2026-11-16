@@ -32,9 +32,7 @@ Les notes de l'orateur ne sont pas marquées : elles accompagnent la slide dans 
 
 Le prix est fixé par le coût variable de la dernière filière appelée : ici `{python} f"{prix:.0f}"` €/MWh.
 
-::: {.intuitif}
-On peut montrer que ce prix est aussi celui qu'aurait choisi un planificateur qui minimise le coût total.
-:::
+Ce prix est aussi celui qu'aurait choisi un planificateur qui minimise le coût total.
 
 ::: {.formel}
 Ce prix est le multiplicateur de la contrainte d'équilibre offre-demande (@eq-eod-exemple).

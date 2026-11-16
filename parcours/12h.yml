@@ -3,37 +3,37 @@
 # Ici : capacité, réseaux et TURPE, ENR et flexibilités (choix à faire selon la session).
 # Point ouvert : représentation des TP dans les parcours (séance dédiée, durée).
 titre: Économie de l'électricité
-formalisme: formel
+options: [approfondissement, formel]
 seances:
   - titre: Le système électrique
     duree: 90
     modules:
-      - systeme: complet
+      - systeme
   - titre: Le cadre d'analyse économique
     duree: 90
     modules:
-      - cadre: complet
+      - cadre
   - titre: Équilibre de court terme
     duree: 90
     modules:
-      - court-terme: complet
+      - court-terme
   - titre: Équilibre de long terme
     duree: 90
     modules:
-      - long-terme: complet
+      - long-terme
   - titre: Architecture des marchés
     duree: 90
     modules:
-      - architecture-marches: complet
+      - architecture-marches
   - titre: Capacité et sécurité d'approvisionnement
     duree: 90
     modules:
-      - capacite: complet
+      - capacite
   - titre: Réseaux et TURPE
     duree: 90
     modules:
-      - reseaux: complet
+      - reseaux
   - titre: ENR et flexibilités
     duree: 90
     modules:
-      - enr-flexibilites: complet
+      - enr-flexibilites

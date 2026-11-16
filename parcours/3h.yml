@@ -1,18 +1,17 @@
 # Brouillon, à valider. Format type 3h, d'après organisation-du-cours.md (section 5) :
-# système, court terme et long terme en version essentielle, puis un cas d'application.
+# système, court terme et long terme sans option, puis un cas d'application.
 # Points ouverts : place de `cadre` (≈ 20 min ou absent, avec rappels dans court-terme) ;
 # découpage en séances.
 titre: Comprendre le prix de l'électricité
-formalisme: intuitif
 seances:
   - titre: Du système électrique au prix de court terme
     duree: 90
     modules:
-      - systeme: essentiel
-      - cadre: essentiel
-      - court-terme: essentiel
+      - systeme
+      - cadre
+      - court-terme
   - titre: Du prix de long terme à la crise de 2022
     duree: 90
     modules:
-      - long-terme: essentiel
-      - crise-2022: essentiel
+      - long-terme
+      - crise-2022

@@ -1,9 +1,8 @@
 --[[
 Marques de contenu des slides.
 
-  .approfondissement  visible dans la version complète seulement
-  .formel             visible dans la version formelle seulement
-  .intuitif           visible dans la version intuitive seulement
+  .approfondissement  visible avec l'option « approfondissement » seulement
+  .formel             visible avec l'option « formel » seulement
   .rappel             visible quand un module prérequis ne précède pas ce module
                       (attribut facultatif module="id" : ce prérequis-là seulement)
 
@@ -11,16 +10,17 @@ Une marque s'applique :
   - à une slide entière : `## Titre {.formel}` (jusqu'au titre suivant de même
     niveau ou de niveau supérieur, ou jusqu'au prochain `---`) ;
   - à un bloc : `::: {.formel}` … `:::` ;
-  - à un passage dans une phrase : `[texte]{.intuitif}`.
+  - à un passage dans une phrase : `[texte]{.formel}`.
 Plusieurs marques sur un même élément se cumulent : il faut que toutes soient visibles.
 
 Le générateur de decks (`ecoelec generer`) place avant chaque module un marqueur
 
-  ::: {.ecoelec-module module="court-terme" profondeur="essentiel" formalisme="intuitif" manquants="systeme"}
+  ::: {.ecoelec-module module="court-terme" options="formel" manquants="systeme"}
   :::
 
-qui fixe la version du contenu qui suit, jusqu'au marqueur suivant. `manquants`
-liste les prérequis du module qui ne le précèdent pas dans le parcours.
+qui fixe les options du contenu qui suit, jusqu'au marqueur suivant : sans option,
+seule la base (contenu non marqué) est conservée. `manquants` liste les prérequis
+du module qui ne le précèdent pas dans le parcours.
 
 Vue auteur (métadonnée `ecoelec: {vue: auteur}`) : tout est conservé et chaque
 marque devient une classe marque-* (bandeau de couleur, voir commun/slides.scss).
@@ -31,15 +31,14 @@ Exécuté au stade pre-ast de Quarto, avant la création des callouts et figures
 local MARKS = {
   approfondissement = true,
   formel = true,
-  intuitif = true,
   rappel = true,
 }
 local MARKER = "ecoelec-module"
 
--- Version du module en cours ; par défaut, tout ce qui n'est pas conditionnel au parcours.
+-- Options du module en cours ; sans marqueur, tout ce qui n'est pas conditionnel au parcours.
+local ALL_OPTIONS = { approfondissement = true, formel = true }
 local state = {
-  depth = "complet",
-  formalism = "formel",
+  options = ALL_OPTIONS,
   missing = {},
   author = false,
 }
@@ -63,12 +62,8 @@ local function marks_of(el)
 end
 
 local function is_visible(mark, el)
-  if mark == "approfondissement" then
-    return state.depth == "complet"
-  elseif mark == "formel" then
-    return state.formalism == "formel"
-  elseif mark == "intuitif" then
-    return state.formalism == "intuitif"
+  if mark == "approfondissement" or mark == "formel" then
+    return state.options[mark] == true
   elseif mark == "rappel" then
     local target = el.attributes["module"]
     if target then
@@ -211,8 +206,7 @@ process_blocks = function(blocks)
   for _, b in ipairs(blocks) do
     if b.t == "Div" and b.classes:includes(MARKER) then
       local a = b.attributes
-      state.depth = a["profondeur"] or "complet"
-      state.formalism = a["formalisme"] or "formel"
+      state.options = a["options"] and word_set(a["options"]) or ALL_OPTIONS
       state.missing = word_set(a["manquants"])
       skip_level = nil
     elseif b.t == "Header" then

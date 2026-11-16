@@ -6,12 +6,19 @@ from pathlib import Path
 
 import yaml
 
-from outils import DEPTHS, FORMALISMS
+from outils import OPTIONS
 from outils.report import Report
 
-MODULE_KEYS = {"titre", "prerequis", "objectifs", "durees", "tp"}
-# Repère une marque .rappel dans les attributs d'un bloc, d'une slide ou d'un passage.
-RECALL_PATTERN = re.compile(r"\{[^}]*\.rappel\b")
+MODULE_KEYS = {"titre", "prerequis", "objectifs", "duree", "supplements", "tp"}
+# Marques retirées : les signaler plutôt que de les laisser sans effet.
+REMOVED_MARKS = {
+    "intuitif": "le contenu non marqué doit tenir seul, sans phrase de liaison réservée"
+}
+
+
+def _mark_pattern(mark: str) -> re.Pattern:
+    """Repère une marque dans les attributs d'un bloc, d'une slide ou d'un passage."""
+    return re.compile(r"\{[^}]*\." + mark + r"\b")
 
 
 @dataclass
@@ -21,8 +28,10 @@ class Module:
     title: str
     prerequisites: list[str] = field(default_factory=list)
     objectives: list[str] = field(default_factory=list)
-    # durations[(profondeur, formalisme)] = minutes, ou None si non estimée
-    durations: dict[tuple[str, str], int | None] = field(default_factory=dict)
+    # Durée de la base en minutes, ou None si non estimée
+    base_duration: int | None = None
+    # Minutes ajoutées par chaque option, ou None si non estimées
+    extras: dict[str, int | None] = field(default_factory=dict)
     tp: list[str] = field(default_factory=list)
     has_recall: bool = False
 
@@ -36,8 +45,10 @@ class Module:
         """Nom des fichiers générés : Quarto ignore les chemins commençant par « _ »."""
         return self.id.lstrip("_")
 
-    def duration(self, depth: str, formalism: str) -> int | None:
-        return self.durations.get((depth, formalism))
+    def duration(self, options=()) -> int | None:
+        """Durée de la base et des options choisies, ou None si l'une n'est pas estimée."""
+        values = [self.base_duration, *(self.extras.get(o, 0) for o in options)]
+        return None if any(v is None for v in values) else sum(values)
 
 
 def module_dirs(root: Path) -> list[Path]:
@@ -81,19 +92,25 @@ def _load_module(folder: Path, root: Path, report: Report) -> Module | None:
         title=title.strip(),
         prerequisites=_as_list(data.get("prerequis"), where, "prerequis", report),
         objectives=_as_list(data.get("objectifs"), where, "objectifs", report),
-        durations=_read_durations(data.get("durees"), where, report),
         tp=_as_list(data.get("tp"), where, "tp", report),
     )
     slides = folder / "slides.qmd"
-    module.has_recall = slides.exists() and bool(
-        RECALL_PATTERN.search(slides.read_text(encoding="utf-8"))
-    )
+    text = slides.read_text(encoding="utf-8") if slides.exists() else ""
+    module.has_recall = bool(_mark_pattern("rappel").search(text))
+    for mark, reason in REMOVED_MARKS.items():
+        if _mark_pattern(mark).search(text):
+            report.error(where, f"marque .{mark} supprimée ({reason})")
+    module.base_duration = _minutes(data.get("duree"), "duree", where, report)
+    module.extras = _read_extras(data.get("supplements"), text, where, report)
 
     todo = []
     if not module.objectives:
         todo.append("objectifs à rédiger")
-    if any(v is None for v in module.durations.values()):
-        todo.append("durées à estimer")
+    pending = [o for o in OPTIONS if module.extras[o] is None]
+    if module.base_duration is None:
+        todo.append("durée à estimer")
+    elif pending:
+        todo.append(f"suppléments à estimer ({', '.join(pending)})")
     if todo and not module.is_example:
         report.warning(where, " ; ".join(todo))
     for tp in module.tp:
@@ -111,23 +128,34 @@ def _as_list(value, where: str, key: str, report: Report) -> list[str]:
     return []
 
 
-def _read_durations(value, where: str, report: Report) -> dict[tuple[str, str], int | None]:
-    durations: dict[tuple[str, str], int | None] = {}
+def _minutes(value, key: str, where: str, report: Report) -> int | None:
+    if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 0):
+        report.error(where, f"« {key} » invalide : {value!r} (minutes attendues)")
+        return None
+    return value
+
+
+def _read_extras(value, slides: str, where: str, report: Report) -> dict[str, int | None]:
+    """Minutes ajoutées par option. Sans valeur : 0 si les slides n'ont pas la marque, sinon à estimer."""
+    if value is None:
+        value = {}
     if not isinstance(value, dict):
-        report.error(where, "« durees » manquant ou mal formé (profondeur → formalisme → minutes)")
-        return {(d, f): None for d in DEPTHS for f in FORMALISMS}
-    for depth in DEPTHS:
-        row = value.get(depth)
-        if not isinstance(row, dict):
-            report.error(where, f"durées : profondeur « {depth} » manquante")
-            row = {}
-        for formalism in FORMALISMS:
-            minutes = row.get(formalism)
-            if minutes is not None and (not isinstance(minutes, int) or minutes <= 0):
-                report.error(where, f"durée {depth}/{formalism} invalide : {minutes!r}")
-                minutes = None
-            durations[(depth, formalism)] = minutes
-    return durations
+        report.error(where, "« supplements » mal formé (option → minutes)")
+        value = {}
+    unknown = set(value) - set(OPTIONS)
+    if unknown:
+        report.error(
+            where,
+            f"suppléments inconnus : {', '.join(sorted(map(str, unknown)))} "
+            f"({' ou '.join(OPTIONS)} attendu)",
+        )
+    extras: dict[str, int | None] = {}
+    for option in OPTIONS:
+        minutes = _minutes(value.get(option), f"supplements.{option}", where, report)
+        if minutes is None and not _mark_pattern(option).search(slides):
+            minutes = 0
+        extras[option] = minutes
+    return extras
 
 
 def _check_prerequisites(modules: dict[str, Module], report: Report) -> None:

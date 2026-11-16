@@ -18,6 +18,7 @@ from pathlib import Path
 
 import yaml
 
+from outils import options_label
 from outils.catalog import load_modules
 from outils.controls import check_images, check_logs
 from outils.decks import OUTPUT, generate
@@ -62,16 +63,15 @@ def _check_book(root: Path, modules: dict, report: Report) -> None:
 
 def _summary(tracks: list[Track]) -> None:
     for track in tracks:
-        print(f"\n{track.name} — {track.title} ({track.formalism})")
+        print(f"\n{track.name} — {track.title} ({options_label(track.options)})")
         for s in track.sessions:
             declared = "à estimer" if s.declared is None else f"{s.declared} min"
             print(f"  séance {s.number:>2} ({s.duration} min, modules : {declared}) : {s.title}")
             for e in s.entries:
                 minutes = "?" if e.duration is None else e.duration
                 recall = f"  [rappels : {', '.join(e.missing)}]" if e.missing else ""
-                print(
-                    f"      {e.module.id:<22} {e.depth:<10} {e.formalism:<9} {minutes:>4}{recall}"
-                )
+                label = options_label(e.options)
+                print(f"      {e.module.id:<22} {label:<40} {minutes:>4}{recall}")
 
 
 def cmd_check(args) -> int:
@@ -97,9 +97,7 @@ MODULE_YML = """\
 titre: {title}
 prerequis: []
 objectifs: []
-durees:                              # en minutes
-  essentiel: {{intuitif: null, formel: null}}
-  complet:   {{intuitif: null, formel: null}}
+duree: null                          # minutes de la base
 tp: []
 """
 

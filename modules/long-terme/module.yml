@@ -1,7 +1,5 @@
 titre: "Équilibre de long terme"
 prerequis: []                        # à définir
 objectifs: []
-durees:                              # en minutes
-  essentiel: {intuitif: null, formel: null}
-  complet:   {intuitif: null, formel: null}
+duree: null                          # minutes de la base
 tp: [tp-long-terme]                  # TP 02 de Cours-EcoElec, à migrer

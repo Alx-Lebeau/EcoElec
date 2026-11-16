@@ -3,15 +3,18 @@
 Format :
 
     titre: Comprendre le prix de l'électricité
-    formalisme: intuitif                 # par défaut pour tout le parcours
+    options: [formel]                    # facultatif : ajoutées à la base de chaque module
     seances:
       - titre: Du merit order au prix de long terme
         duree: 90                        # minutes
         introduction: parcours/textes/accueil.qmd   # facultatif
         conclusion: parcours/textes/bilan.qmd       # facultatif
         modules:
-          - court-terme: essentiel
-          - long-terme: {profondeur: complet, formalisme: formel}   # exception
+          - court-terme
+          - long-terme: {avec: approfondissement}   # exception : option en plus
+          - cadre: {sans: formel}                   # exception : option en moins
+
+Options : approfondissement, formel (du nom des marques qu'elles rendent visibles).
 """
 
 import re
@@ -20,26 +23,25 @@ from pathlib import Path
 
 import yaml
 
-from outils import DEPTHS, FORMALISMS
+from outils import OPTIONS
 from outils.catalog import Module
 from outils.report import Report
 
-TRACK_KEYS = {"titre", "formalisme", "seances"}
+TRACK_KEYS = {"titre", "options", "seances"}
 SESSION_KEYS = {"titre", "duree", "modules", "introduction", "conclusion"}
 
 
 @dataclass
 class Entry:
-    """Un module dans une séance, avec sa version et les prérequis qui ne le précèdent pas."""
+    """Un module dans une séance, avec ses options et les prérequis qui ne le précèdent pas."""
 
     module: Module
-    depth: str
-    formalism: str
+    options: tuple[str, ...] = ()
     missing: list[str] = field(default_factory=list)
 
     @property
     def duration(self) -> int | None:
-        return self.module.duration(self.depth, self.formalism)
+        return self.module.duration(self.options)
 
 
 @dataclass
@@ -63,7 +65,7 @@ class Track:
     name: str
     path: Path
     title: str
-    formalism: str
+    options: tuple[str, ...]
     sessions: list[Session]
 
     def entries(self) -> list[Entry]:
@@ -99,11 +101,8 @@ def _load_track(path: Path, root: Path, modules: dict[str, Module], report: Repo
     if not isinstance(title, str) or not title.strip():
         report.error(where, "titre manquant")
         return None
-    formalism = data.get("formalisme")
-    if formalism not in FORMALISMS:
-        report.error(
-            where, f"formalisme du parcours : {' ou '.join(FORMALISMS)} attendu, pas {formalism!r}"
-        )
+    options = _read_options(data.get("options"), "options du parcours", where, report)
+    if options is None:
         return None
     raw_sessions = data.get("seances")
     if not isinstance(raw_sessions, list) or not raw_sessions:
@@ -113,16 +112,27 @@ def _load_track(path: Path, root: Path, modules: dict[str, Module], report: Repo
     sessions = []
     for number, raw in enumerate(raw_sessions, start=1):
         session = _read_session(
-            raw, number, formalism, f"{where}, séance {number}", root, modules, report
+            raw, number, options, f"{where}, séance {number}", root, modules, report
         )
         if session:
             sessions.append(session)
-    track = Track(path.stem, path, title.strip(), formalism, sessions)
+    track = Track(path.stem, path, title.strip(), tuple(options), sessions)
     _check_track(track, where, report)
     return track
 
 
-def _read_session(raw, number, formalism, where, root, modules, report) -> Session | None:
+def _read_options(value, what: str, where: str, report: Report) -> list[str] | None:
+    """Une option ou une liste d'options ; None (et une erreur) si la valeur est invalide."""
+    if value is None:
+        return []
+    values = [value] if isinstance(value, str) else value
+    if not isinstance(values, list) or any(v not in OPTIONS for v in values):
+        report.error(where, f"{what} : {' ou '.join(OPTIONS)} attendu, pas {value!r}")
+        return None
+    return values
+
+
+def _read_session(raw, number, options, where, root, modules, report) -> Session | None:
     if not isinstance(raw, dict):
         report.error(where, "séance mal formée")
         return None
@@ -143,7 +153,7 @@ def _read_session(raw, number, formalism, where, root, modules, report) -> Sessi
 
     entries = []
     for item in raw.get("modules") or []:
-        entry = _read_entry(item, formalism, where, modules, report)
+        entry = _read_entry(item, options, where, modules, report)
         if entry:
             entries.append(entry)
     if not entries:
@@ -154,7 +164,10 @@ def _read_session(raw, number, formalism, where, root, modules, report) -> Sessi
     )
 
 
-def _read_entry(item, formalism, where, modules, report) -> Entry | None:
+def _read_entry(item, options, where, modules, report) -> Entry | None:
+    # « - module » ou « - module: {avec: …, sans: …} »
+    if isinstance(item, str):
+        item = {item: None}
     if not isinstance(item, dict) or len(item) != 1:
         report.error(where, f"entrée de module mal formée : {item!r}")
         return None
@@ -166,25 +179,16 @@ def _read_entry(item, formalism, where, modules, report) -> Entry | None:
     if module.is_example:
         report.error(where, f"{module_id} est un module d'exemple, hors parcours")
         return None
-    if isinstance(spec, str):
-        depth, entry_formalism = spec, formalism
-    elif isinstance(spec, dict):
-        depth, entry_formalism = spec.get("profondeur"), spec.get("formalisme", formalism)
-    else:
-        report.error(where, f"{module_id} : version mal formée ({spec!r})")
+    spec = {} if spec is None else spec
+    if not isinstance(spec, dict) or set(spec) - {"avec", "sans"}:
+        report.error(where, f"{module_id} : « avec » ou « sans » attendu, pas {spec!r}")
         return None
-    if depth not in DEPTHS:
-        report.error(
-            where, f"{module_id} : profondeur {' ou '.join(DEPTHS)} attendue, pas {depth!r}"
-        )
+    added = _read_options(spec.get("avec"), f"{module_id}, avec", where, report)
+    removed = _read_options(spec.get("sans"), f"{module_id}, sans", where, report)
+    if added is None or removed is None:
         return None
-    if entry_formalism not in FORMALISMS:
-        report.error(
-            where,
-            f"{module_id} : formalisme {' ou '.join(FORMALISMS)} attendu, pas {entry_formalism!r}",
-        )
-        return None
-    return Entry(module, depth, entry_formalism)
+    chosen = (set(options) | set(added)) - set(removed)
+    return Entry(module, tuple(o for o in OPTIONS if o in chosen))
 
 
 def _check_track(track: Track, where: str, report: Report) -> None:

@@ -5,7 +5,6 @@ objectifs:
   - Définir l'utilité des consommateurs, le prix et le tarif
   - Caractériser l'optimum (first best) et le surplus social
   - Comparer le planificateur bienveillant et l'équilibre de marché
-durees:                              # en minutes
-  essentiel: {intuitif: 20, formel: 25}
-  complet:   {intuitif: null, formel: null}
+duree: 20                            # minutes de la base
+supplements: {formel: 5}             # approfondissement : à estimer
 tp: []

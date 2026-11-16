@@ -1,5 +1,5 @@
 # Rendu complet à chaque push : tests, poly (HTML + PDF), slides (decks des parcours,
-# quatre versions et vue auteur de chaque module), decks autonomes et PDF, contrôles.
+# base, intégrale et vue auteur de chaque module), decks autonomes et PDF, contrôles.
 # Le rendu est disponible en artefact « rendu » de chaque exécution.
 # Publication sur GitHub Pages : à activer à l'ouverture du dépôt (job « publier » ci-dessous).
 

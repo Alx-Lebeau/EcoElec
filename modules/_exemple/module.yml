@@ -1,12 +1,11 @@
 # Module d'exemple : montre la syntaxe des marques et sert de test à la chaîne de rendu.
 # Hors poly et hors parcours (dossier préfixé par « _ »), mais rendu par la CI
-# dans ses quatre versions et en vue auteur.
+# base seule, avec toutes les options, et en vue auteur.
 titre: "Module d'exemple : un merit order"
 prerequis: [systeme]
 objectifs:
   - Lire une courbe d'offre et en déduire le prix d'équilibre
-  - Voir comment une même source produit quatre versions
-durees:                              # en minutes
-  essentiel: {intuitif: 10, formel: 15}
-  complet:   {intuitif: 20, formel: 30}
+  - Voir comment une même source produit la base et ses options
+duree: 10                            # minutes de la base
+supplements: {approfondissement: 10, formel: 5}
 tp: []

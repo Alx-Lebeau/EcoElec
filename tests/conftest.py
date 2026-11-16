@@ -17,9 +17,7 @@ def module_yml(title: str, prereqs: list[str], minutes: int | None = 30) -> str:
         titre: "{title}"
         prerequis: [{", ".join(prereqs)}]
         objectifs: [Comprendre {title}]
-        durees:
-          essentiel: {{intuitif: {m}, formel: {m}}}
-          complet:   {{intuitif: {m}, formel: {m}}}
+        duree: {m}
         tp: []
         """)
 
@@ -50,13 +48,12 @@ def project(tmp_path: Path) -> Path:
         tmp_path / "parcours/court.yml",
         """\
         titre: Parcours court
-        formalisme: intuitif
         seances:
           - titre: Séance unique
             duree: 60
             modules:
-              - base: essentiel
-              - suite: {profondeur: complet, formalisme: formel}
+              - base
+              - suite: {avec: [approfondissement, formel]}
         """,
     )
     return tmp_path

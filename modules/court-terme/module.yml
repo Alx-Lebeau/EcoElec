@@ -1,7 +1,5 @@
 titre: "Équilibre de court terme et formation des prix"
 prerequis: [systeme]                 # à revoir avec l'arrivée de cadre
 objectifs: []
-durees:                              # en minutes
-  essentiel: {intuitif: null, formel: null}
-  complet:   {intuitif: null, formel: null}
+duree: null                          # minutes de la base
 tp: [tp-court-terme]                 # TP 01 de Cours-EcoElec, à migrer

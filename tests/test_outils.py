@@ -21,9 +21,9 @@ def test_valid_project(project: Path):
     assert set(modules) == {"base", "suite"}
     assert modules["suite"].has_recall
     (session,) = tracks[0].sessions
-    assert [(e.module.id, e.depth, e.formalism) for e in session.entries] == [
-        ("base", "essentiel", "intuitif"),
-        ("suite", "complet", "formel"),
+    assert [(e.module.id, e.options) for e in session.entries] == [
+        ("base", ()),
+        ("suite", ("approfondissement", "formel")),
     ]
     assert session.declared == 60
     # base précède suite : aucun prérequis manquant
@@ -43,17 +43,63 @@ def test_unknown_duration_is_a_warning(project: Path):
     assert any("durée non vérifiable" in t for t in messages(report, "alerte"))
 
 
+def test_options_and_supplements(project: Path):
+    write(
+        project / "modules/suite/module.yml",
+        module_yml("suite", ["base"], minutes=20) + "supplements: {formel: 5}\n",
+    )
+    write(
+        project / "modules/suite/slides.qmd",
+        "## Rappel {.rappel}\n\n## Suite\n\n::: {.formel}\nMaths.\n:::\n\n## Plus {.approfondissement}\n",
+    )
+    write(
+        project / "parcours/court.yml",
+        """\
+        titre: Parcours court
+        options: [approfondissement, formel]
+        seances:
+          - titre: Séance unique
+            duree: 60
+            modules:
+              - base
+              - suite: {sans: approfondissement}
+        """,
+    )
+    report, modules, tracks = check(project)
+    assert report.ok, [str(m) for m in report.messages]
+    suite = modules["suite"]
+    assert suite.duration() == 20 and suite.duration(["formel"]) == 25
+    # Slides marquées .approfondissement sans supplément déclaré : durée à estimer
+    assert suite.duration(["approfondissement"]) is None
+    assert any("suppléments à estimer" in t for t in messages(report, "alerte"))
+    base, entry = tracks[0].sessions[0].entries
+    assert base.options == ("approfondissement", "formel")
+    assert entry.options == ("formel",) and entry.duration == 25
+
+
+def test_invalid_option_and_removed_mark(project: Path):
+    write(project / "modules/base/slides.qmd", "## Base\n\n::: {.intuitif}\nLiaison.\n:::\n")
+    write(
+        project / "parcours/court.yml",
+        "titre: X\nseances:\n  - titre: S\n    duree: 60\n    modules:\n      - base: {avec: complet}\n",
+    )
+    report, _, _ = check(project)
+    errors = messages(report, "erreur")
+    assert any("marque .intuitif supprimée" in t for t in errors)
+    assert any("base, avec" in t for t in errors)
+
+
 def test_missing_prerequisite(project: Path):
     write(
         project / "parcours/court.yml",
         """\
         titre: Parcours court
-        formalisme: formel
+        options: [formel]
         seances:
           - titre: Séance unique
             duree: 60
             modules:
-              - suite: essentiel
+              - suite
         """,
     )
     report, _, tracks = check(project)
@@ -72,7 +118,7 @@ def test_unknown_module_and_cycle(project: Path):
     assert any("circulaires" in t for t in messages(report, "erreur"))
     write(
         project / "parcours/court.yml",
-        "titre: X\nformalisme: formel\nseances:\n  - titre: S\n    duree: 30\n    modules:\n      - absent: essentiel\n",
+        "titre: X\nseances:\n  - titre: S\n    duree: 30\n    modules:\n      - absent\n",
     )
     load_tracks(project, modules, report)
     assert any("module inconnu" in t for t in messages(report, "erreur"))
@@ -93,21 +139,15 @@ def test_generate(project: Path):
     _, modules, tracks = check(project)
     generate(project, modules, tracks)
     out = project / OUTPUT
-    for name in [
-        "essentiel-intuitif",
-        "essentiel-formel",
-        "complet-intuitif",
-        "complet-formel",
-        "auteur",
-    ]:
+    for name in ["base", "integral", "auteur"]:
         assert (out / f"modules/suite/{name}.qmd").exists()
     deck = (out / "parcours/court/seance-01.qmd").read_text(encoding="utf-8")
-    assert 'module="suite" profondeur="complet" formalisme="formel" manquants=""' in deck
+    assert 'module="suite" options="approfondissement formel" manquants=""' in deck
     assert "{{< include /modules/suite/slides.qmd >}}" in deck
     assert "## Au programme" in deck
     # Deck isolé d'un module : tous ses prérequis sont manquants
-    alone = (out / "modules/suite/essentiel-intuitif.qmd").read_text(encoding="utf-8")
-    assert 'manquants="base"' in alone
+    alone = (out / "modules/suite/base.qmd").read_text(encoding="utf-8")
+    assert 'options="" manquants="base"' in alone
     assert (out / "parcours/court/index.qmd").exists()
     assert (out / "index.qmd").exists()
 
