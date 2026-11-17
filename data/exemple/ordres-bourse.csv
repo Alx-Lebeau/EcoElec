@@ -1,0 +1,7 @@
+ordre,sens,volume,prix_limite
+A1,achat,300,200
+A2,achat,200,90
+A3,achat,250,40
+V1,vente,250,0
+V2,vente,300,60
+V3,vente,200,120

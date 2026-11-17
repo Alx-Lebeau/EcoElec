@@ -381,3 +381,48 @@ $marques: (
 .reveal .slides .sigles li {
   margin: 0;
 }
+
+// Carnet d'ordres (tableau `table.carnet` de pyelec.bourse.order_book_html) :
+// achat et vente côte à côte, aux teintes de la demande et de l'offre.
+.reveal .slides table.carnet {
+  font-size: 0.62em;
+  margin: 0.3em 0 0.5em;
+  border-collapse: collapse;
+  width: 100%;
+}
+.reveal .slides table.carnet th,
+.reveal .slides table.carnet td {
+  padding: 0.35em 0.6em;
+  text-align: center;
+  border: 1px solid #cbd5e1;
+  line-height: 1.25;
+}
+.reveal .slides table.carnet thead tr:first-child th {
+  font-size: 1.1em;
+  color: white;
+}
+.reveal .slides table.carnet thead tr:first-child th.achat {
+  background: #7c3aed;
+}
+.reveal .slides table.carnet thead tr:first-child th.vente {
+  background: #e07a1f;
+}
+.reveal .slides table.carnet thead tr + tr th {
+  font-weight: normal;
+  font-size: 0.85em;
+  color: #475569;
+}
+.reveal .slides table.carnet th.achat,
+.reveal .slides table.carnet td.achat {
+  background-color: #f5f0ff;
+}
+.reveal .slides table.carnet th.vente,
+.reveal .slides table.carnet td.vente {
+  background-color: #fff5eb;
+}
+.reveal .slides table.carnet td {
+  height: 1.6em;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #1e293b;
+}

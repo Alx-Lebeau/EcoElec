@@ -49,7 +49,7 @@ CO2 = "#64748b"
 VOM = "#cbd5e1"
 
 # Figure en colonne de slide, à côté d'un texte.
-FIGSIZE = (6.2, 4.4)
+FIGSIZE = (5.6, 4.1)
 
 
 def number(x: float, digits: int = 0) -> str:
@@ -410,21 +410,21 @@ def gas_plant_flow(ax: plt.Axes, plant: pd.Series, plant_label: str = "CCG") -> 
 
     `plant` : une ligne de `load_gas_plants` (rendements, facteur d'émission PCS).
     """
-    ax.set_xlim(0, 10)
+    ax.set_xlim(-0.2, 10.2)
     ax.set_ylim(0, 4.8)
     ax.axis("off")
     eta, e = float(plant["rendement"]), float(plant["facteur_emission"])
     gas_c, elec_c = color("gaz"), ACCENTS["transport"]
     y = 2.1
     eta_pci = float(plant["rendement_pci"])
-    _node(ax, 1.2, y, 2.2, 1.2, "1 MWh PCS\nde gaz", gas_c, size=12)
+    _node(ax, 1.3, y, 2.6, 1.3, "1 MWh PCS\nde gaz", gas_c, size=12)
     _node(
         ax, 5.0, y, 2.8, 2.0, f"{plant_label}\nrendement\n{eta_pci * 100:.0f} % PCI", TEXT, size=12
     )
-    _node(ax, 8.8, y, 2.4, 1.2, f"{number(eta, 2)} MWh\nd'électricité", elec_c)
+    _node(ax, 8.7, y, 2.6, 1.3, f"{number(eta, 2)} MWh\nd'électricité", elec_c, size=12)
     _node(ax, 5.0, 4.35, 2.8, 0.75, f"{number(e, 2)} t de CO₂", CO2, size=12)
-    _flow(ax, (2.3, y), (3.6, y), gas_c)
-    _flow(ax, (6.4, y), (7.6, y), elec_c)
+    _flow(ax, (2.6, y), (3.6, y), gas_c)
+    _flow(ax, (6.4, y), (7.4, y), elec_c)
     _flow(ax, (5.0, y + 1.0), (5.0, 3.97), CO2)
     _flow(ax, (5.0, y - 1.0), (5.0, 0.55), TEXT_LIGHT, lw=1.8)
     ax.text(5.0, 0.3, f"pertes : {number(1 - eta, 2)} MWh de chaleur", ha="center", va="center",

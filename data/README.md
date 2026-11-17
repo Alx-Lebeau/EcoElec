@@ -178,6 +178,23 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
   n'est pas calculée.
 - **Licence** : CC BY-SA 4.0.
 
+### `exemple/ordres-bourse.csv`
+
+- **Contenu** : six ordres élémentaires d'une enchère illustrative (sens, volume en
+  MW, prix limite en €/MWh : maximal à l'achat, minimal à la vente).
+- **Source** : valeurs choisies pour l'exemple (un vendeur servi en partie).
+- **Licence** : CC BY-SA 4.0.
+
+### `exemple/portefeuille-bourse.csv`
+
+- **Contenu** : portefeuille illustratif d'un acteur sur la bourse, pour un quart
+  d'heure : un parc éolien et un cycle combiné (puissance disponible en MW), et la
+  demande de ses clients quand il est aussi fournisseur (ligne `demande`). Coût
+  variable de l'éolien nul, celui du cycle combiné calculé depuis `couts/`.
+- **Source** : valeurs choisies pour l'exemple, d'après la logique des exemples
+  charbon et gaz d'un cours antérieur de l'auteur.
+- **Licence** : CC BY-SA 4.0.
+
 ## À migrer
 
 - Consommation France et disponibilités horaires 2024 des TP (source ENTSO-E

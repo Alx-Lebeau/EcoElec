@@ -11,7 +11,7 @@
 ```{python}
 import matplotlib.pyplot as plt
 
-from pyelec import dispatch, economie, label, style
+from pyelec import bourse, dispatch, economie, label, style
 from pyelec.dispatch import number
 
 style.use()
@@ -51,12 +51,12 @@ Définition économique, pas calendaire : le court terme couvre toutes les déci
 prises avec un parc donné, de l'ajustement en temps réel à la programmation de la
 production de la saison suivante.
 
-Simplifications du module : une seule heure, pas de réseau, pas de contraintes
-techniques (démarrages, minimums techniques, rampes). Elles reviennent dans les
-modules suivants.
+Simplifications du module : un seul pas de temps, pas de réseau (sauf l'aperçu du
+couplage européen), pas de contraintes techniques (démarrages, minimums techniques,
+rampes). Elles reviennent dans les modules suivants.
 :::
 
-## Le problème du planificateur
+## Le planificateur bienveillant, à court terme
 
 ::: {.figure-large}
 ```{python}
@@ -68,16 +68,23 @@ plt.show()
 :::
 
 ::: {.sous-schema}
-Un planificateur bienveillant dispose de quatre types de centrales pour servir la
-demande d'une heure donnée : renouvelables, nucléaire, cycles combinés au gaz
-(**CCG**) et turbines à combustion (**TAC**).
+Le **planificateur bienveillant** connaît tous les coûts et vise le surplus social
+maximal. Ici, il ne choisit pas le parc : il exploite celui qui existe. Quatre types de
+centrales, renouvelables, nucléaire, cycles combinés au gaz (**CCG**) et turbines à
+combustion (**TAC**), pour servir la demande d'une heure donnée, connue à l'avance.
 
 **Quelles centrales faire produire ?**
 :::
 
 ::: {.notes}
-Turbine à combustion : au gaz ou au fioul (ici au gaz). Capacités disponibles à l'heure considérée, pas capacités installées : les
-renouvelables dépendent du vent et du soleil, les autres filières des arrêts.
+Planificateur bienveillant : la référence théorique du module cadre, une autorité
+fictive qui connaît tout et maximise le surplus social. Le même personnage revient au
+long terme, où il choisit aussi le parc. Ici, son horizon est le court terme : parc
+donné, seules la production et la consommation se décident.
+
+Turbine à combustion : au gaz ou au fioul (ici au gaz). Capacités disponibles à
+l'heure considérée, pas capacités installées : les renouvelables dépendent du vent et
+du soleil, les autres filières des arrêts pour maintenance ou panne.
 
 Laisser le public proposer. Réponse attendue : « les moins chères d'abord ». Relancer :
 moins chères selon quel coût ? Le coût complet par MWh produit, qui inclut
@@ -102,8 +109,8 @@ Payés que la centrale tourne ou non.
 **Coûts variables** (€/MWh) : combustible, CO₂, usure. Payés seulement quand
 elle produit.
 
-**À court terme, seuls les coûts variables comptent** : produire ou non ne change
-pas les coûts fixes.
+**Pour décider de produire, seuls les coûts variables comptent** : produire ou non
+ne change pas les coûts fixes.
 :::
 ::::
 
@@ -133,14 +140,15 @@ def rendement(filiere, base="pci"):
 ::: {.column width="55%"}
 ```{python}
 #| classes: figure-colonne
-fig, ax = plt.subplots(figsize=(6, 3.2))
+fig, ax = plt.subplots(figsize=(5.2, 2.9))
 dispatch.gas_plant_flow(ax, centrales.loc["ccg"])
 style.add_source(fig, "CRE (rendement) ; GIEC (émissions)", str(annee_prix))
 plt.show()
 ```
 :::
 ::: {.column width="45%"}
-1 MWh d'électricité : $1/\eta$ MWh de gaz brûlés, et le CO₂ émis à payer.
+Pour 1 MWh d'électricité : brûler $1/\eta$ MWh de gaz, et restituer des quotas
+pour le CO₂ émis.
 
 $$
 \CV = \frac{p_{\text{gaz}} + e \times p_{\text{CO}_2}}{\eta} + \text{VOM}
@@ -155,7 +163,7 @@ Par MWh de gaz **PCS** (pouvoir calorifique supérieur), unité des marchés :
 ::::
 
 ::: {.notes}
-Lire le schéma de gauche à droite : 1 MWh de gaz entre, un peu plus de la moitié en
+Lire le schéma de gauche à droite : 1 MWh PCS de gaz entre, la moitié environ en
 ressort sous forme d'électricité, le reste part en chaleur. Le CO₂ émis dépend du gaz
 brûlé, pas de l'électricité produite : d'où la division par le rendement.
 
@@ -183,8 +191,8 @@ charge.
 Rendement `{python} rendement("ccg")` % PCI.
 :::
 ::: {.column width="50%"}
-**TAC** : une turbine seule, la chaleur est perdue. Rendement
-`{python} rendement("tac")` % PCI, mais démarrage en quelques minutes.
+**TAC** : une turbine seule, la chaleur des gaz d'échappement est perdue. Rendement
+`{python} rendement("tac")` % PCI, mais démarrage rapide.
 :::
 ::::
 
@@ -199,7 +207,9 @@ plt.show()
 
 ::: {.sous-schema}
 Avec les prix moyens de `{python} annee_prix` : gaz `{python} number(couts_gaz.attrs["prix_gaz"])` €/MWh PCS,
-CO₂ `{python} number(couts_gaz.attrs["prix_co2"])` €/t. Le gaz pèse les deux tiers du coût.
+CO₂ `{python} number(couts_gaz.attrs["prix_co2"])` €/t. Le gaz pèse
+`{python} f"{couts_gaz.loc['ccg', 'gaz'] / couts_gaz.loc['ccg', 'total'] * 100:.0f}"` % du
+coût variable d'un CCG.
 :::
 
 ::: {.sigles}
@@ -209,7 +219,8 @@ CO₂ `{python} number(couts_gaz.attrs["prix_co2"])` €/t. Le gaz pèse les deu
 :::
 
 ::: {.notes}
-Même combustible, même prix : seul le rendement les sépare. La TAC coûte plus cher à
+Même combustible, même prix : le rendement fait l'essentiel de l'écart (le VOM est
+négligeable). La TAC coûte plus cher à
 chaque MWh, mais elle est moins chère à construire et démarre vite : c'est une
 centrale de pointe, qui tourne peu d'heures (long terme).
 
@@ -264,23 +275,25 @@ CO₂ : le nombre de quotas est plafonné et décroît chaque année. Le prix du
 est un coût même pour qui a reçu ses quotas gratuitement : il pourrait les vendre
 au lieu de les restituer (coût d'opportunité). Les producteurs d'électricité n'en
 reçoivent plus gratuitement dans l'Union depuis 2013, à quelques exceptions près.
-Le prix du CO₂ fait passer le coût des émissions dans le coût variable : c'est l'outil
-qui fait reculer le charbon derrière le gaz dans le merit order.
+Le prix du CO₂ fait entrer le coût des émissions dans le coût variable : assez élevé,
+il fait passer le charbon, plus émetteur, derrière le gaz dans le merit order.
 
 Données : prix mensuels du gaz de la Banque mondiale (TTF depuis 2015), convertis
 en €/MWh PCS. La Banque mondiale ne précise pas le contrat retenu. Ses moyennes
 annuelles collent au contrat du mois suivant (M+1) plutôt qu'au *day-ahead* : en 2022,
 `{python} number(prix_gaz[prix_gaz.index.year == 2022].mean())` €/MWh, contre
 `{python} number(prix_annuels.loc[2022, "gaz_eur_mwh"] + prix_annuels.loc[2022, "ecart_ttf_peg"])` €/MWh
-pour le TTF *day-ahead* d'après la CRE (PEG plus écart TTF-PEG). Pas de série mensuelle du quota sous licence ouverte : moyennes annuelles et
-extrêmes publiés par la CRE (minimum de 2022 non publié).
+pour le TTF *day-ahead* d'après la CRE (PEG plus écart TTF-PEG).
+
+Pas de série mensuelle du quota sous licence ouverte : moyennes annuelles et extrêmes
+publiés par la CRE (minimum de 2022 non publié).
 :::
 
 ## Nucléaire et hydraulique : une valeur d'usage
 
 ::: {.figure-large}
 ```{python}
-fig = plt.figure(figsize=(10, 3.0))
+fig = plt.figure(figsize=(10, 2.8))
 economie.usage_value(fig)
 plt.show()
 ```
@@ -288,12 +301,13 @@ plt.show()
 
 :::: {.columns .sous-schema}
 ::: {.column width="50%"}
-**Stock limité** : eau d'un lac, combustible nucléaire jusqu'au prochain
-rechargement. Produire maintenant, c'est ne plus pouvoir produire plus tard.
+**Stock limité** : eau d'un lac, combustible d'un réacteur jusqu'au rechargement.
+Produire maintenant, c'est ne plus pouvoir produire plus tard.
 :::
 ::: {.column width="50%"}
-**Valeur d'usage** : valeur future attendue du MWh gardé. Coût d'opportunité, il tient
-lieu de coût variable. Les **renouvelables**, sans stock, ont un coût quasi nul.
+**Valeur d'usage** : valeur future attendue du MWh gardé. C'est un coût
+d'opportunité, qui tient lieu de coût variable. Les **renouvelables**, sans stock,
+ont un coût variable quasi nul.
 :::
 ::::
 
@@ -305,8 +319,8 @@ son stock sinon. Saison stylisée, sans données.
 Renouvelables (éolien, solaire, fil de l'eau) : l'énergie non produite est perdue,
 d'où un coût d'opportunité nul.
 
-La valeur d'usage se calcule en optimisant la gestion du stock sur toute la
-saison, avec des prévisions incertaines de demande, d'apports d'eau et de prix
+La valeur d'usage est une valeur attendue et actualisée. Elle se calcule en
+optimisant la gestion du stock sur toute la saison, avec des prévisions incertaines de demande, d'apports d'eau et de prix
 (programmation dynamique) : hors du module. Elle est élevée quand le stock est bas
 et que des périodes chères s'annoncent, faible quand le réservoir déborde.
 
@@ -335,15 +349,14 @@ plt.show()
 **Ordre de préséance économique** : centrales appelées par coût variable
 croissant.
 
-- **En paliers** : un palier par filière, de la largeur de sa capacité.
-- Le coût du MWh supplémentaire à chaque niveau de production : la **courbe
-  d'offre**.
+- **En paliers** : un palier par filière, de la largeur de sa capacité disponible.
+- Coût du MWh supplémentaire à chaque niveau : la **courbe d'offre**.
 
 ::: {.formel}
 $$
 \begin{aligned}
-\min_{p} \; & \textstyle\sum_i \CV_i \, p_i \\
-\text{avec} \; & \textstyle\sum_i p_i = D, \;\; 0 \le p_i \le \Pmax_i
+\min_{q} \; & \textstyle\sum_i \CV_i \, q_i \\
+\text{avec} \; & \textstyle\sum_i q_i = D, \;\; 0 \le q_i \le \Pmax_i
 \end{aligned}
 $$
 :::
@@ -360,8 +373,9 @@ Pour une demande donnée, appeler les centrales dans cet ordre minimise le coût
 production : c'est la réponse au problème du planificateur. Ce dernier n'a pas besoin
 de connaître la demande pour établir le classement.
 
-Version formelle : problème linéaire. La solution remplit les filières par coût
-croissant jusqu'à atteindre la demande.
+Version formelle : problème linéaire, $q_i$ la production de la filière $i$, $D$ la
+demande. La solution remplit les filières par coût croissant jusqu'à atteindre la
+demande.
 :::
 
 ## Continu ou en paliers ?
@@ -375,11 +389,11 @@ plt.show()
 :::
 
 ::: {.sous-schema}
-**Théorie** : le continu, de nombreuses unités aux coûts différents.
-**Applications** : les paliers. Le coût marginal est le coût variable de la
-centrale la plus chère nécessaire.
-[En paliers, C n'est ni strictement convexe ni dérivable : $U' = C'$ devient un
-encadrement.]{.formel}
+**En théorie**, une courbe continue : de nombreuses unités, chacune négligeable.
+**En pratique**, des paliers : le coût marginal est le coût variable de la dernière
+centrale appelée.
+[En paliers, $C$ reste convexe mais n'est ni strictement convexe ni dérivable :
+$U' = C'$ devient un encadrement.]{.formel}
 :::
 
 ::: {.notes}
@@ -443,7 +457,8 @@ Objections fréquentes, à accueillir :
 VOLL (*value of lost load*, valeur de l'énergie non distribuée) : valeur moyenne
 d'un MWh coupé (perte de production, d'activité, de confort). Elle est estimée par
 enquêtes auprès des consommateurs et bien supérieure aux coûts de production.
-Coût d'une défaillance : $\VOLL \times \END$.
+Coût d'une défaillance : $\VOLL \times \END$, avec END l'énergie non distribuée
+(MWh).
 :::
 
 ## Offre, demande et prix
@@ -459,14 +474,14 @@ plt.show()
 ```
 :::
 ::: {.column width="45%"}
-**Une demande presque verticale** : à court terme, la consommation réagit peu
-au prix.
+**Demande presque verticale** : à court terme, la consommation réagit peu au prix.
 
-**L'intersection** fixe la quantité q\* et le prix p\* :
+**L'intersection** fixe q\* et p\* :
 
-- les filières à gauche de q\* produisent, les autres non.
-- p\* est le coût variable de la **filière marginale**, ici le
-  `{python} label(eq.marginal)` : `{python} number(eq.price)` €/MWh.
+- Filières moins chères que la **marginale** : à pleine capacité. Plus chères :
+  arrêtées.
+- p\* : coût variable de la marginale, ici le `{python} label(eq.marginal)`,
+  `{python} number(eq.price)` €/MWh.
 
 ::: {.formel}
 $p^* = \CV_m \;$ si la filière $m$ est marginale.
@@ -487,8 +502,9 @@ d'une heure à l'autre.
 Axe des prix interrompu : la VOLL est hors d'échelle, très au-dessus des coûts
 variables. La pente de la demande entre la VOLL et les prix visibles est stylisée.
 
-Le prix égale le coût marginal du système : produire un MWh de plus coûterait le
-coût variable de la filière marginale. Si la demande coupe la courbe d'offre sur
+La filière marginale produit en partie : elle ajuste la production à la demande. Le
+prix égale le coût marginal du système : produire un MWh de plus coûterait le coût
+variable de la filière marginale. Si la demande coupe la courbe d'offre sur
 une verticale, entre deux paliers, c'est la demande qui fixe le prix.
 :::
 
@@ -513,18 +529,16 @@ plt.show()
 ```
 :::
 ::: {.column width="45%"}
-**Surplus des consommateurs** : utilité moins ce qu'ils paient.
+Le **surplus social** est maximal en q\*. Le prix p\* le partage :
 
-**Surplus des producteurs** : recettes moins coûts variables. C'est la **rente
-inframarginale** des filières moins chères que la marginale.
-
-Leur somme, le surplus social, est maximale à l'équilibre : on retrouve le choix du
-planificateur.
+- **consommateurs** : utilité moins ce qu'ils paient.
+- **producteurs** : recettes moins coûts variables. C'est la **rente
+  inframarginale** des filières moins chères que la marginale.
 :::
 ::::
 
 ::: {.notes}
-La filière marginale ne dégage aucune rente : son prix couvre juste son coût
+La filière marginale ne dégage aucune rente : le prix couvre juste son coût
 variable. Les filières moins chères gagnent l'écart entre le prix et leur coût
 variable, sur chaque MWh.
 
@@ -551,15 +565,15 @@ plt.show()
 ::: {.column width="45%"}
 La demande non flexible dépasse la capacité du parc :
 
-- toutes les centrales produisent.
-- le prix n'est plus fixé par une centrale mais par la demande : la **VOLL**.
-- une partie de la consommation est coupée : **énergie non distribuée**
-  (`{python} number(rarete.unserved)` GW).
+- Toutes les centrales produisent.
+- Le prix n'est plus fixé par une centrale mais par la demande : la **VOLL**.
+- `{python} number(rarete.unserved)` GW coupés sur l'heure : **énergie non
+  distribuée**.
 
 ::: {.formel}
 $p^* = \VOLL, \quad \END = D - \textstyle\sum_i \Pmax_i$
 
-END : énergie non distribuée.
+$D$ : demande non flexible. END : énergie non distribuée.
 :::
 :::
 ::::
@@ -571,8 +585,9 @@ END : énergie non distribuée.
 
 ::: {.notes}
 Délestage : le gestionnaire du réseau coupe des consommateurs pour préserver
-l'équilibre (module système). Le planificateur coupe les usages qui valent le
-moins, en pratique des zones entières, faute de pouvoir trier les usages.
+l'équilibre (module système). Le planificateur renoncerait d'abord aux usages
+flexibles, puis aux usages non flexibles de moindre valeur. En pratique, le délestage
+coupe des zones entières, sans trier les usages.
 
 Prix de rareté : toutes les centrales gagnent l'écart entre la VOLL et leur coût
 variable, même la TAC. Ces quelques heures pèsent lourd dans la couverture des
@@ -583,10 +598,336 @@ fixe entre le coût de la TAC et la VOLL, au niveau où les consommateurs flexib
 renoncent.
 :::
 
+## La bourse de l'électricité {partie="Le marché"}
+
+```{python}
+actifs, clients = bourse.load_portfolio()
+carnet_producteur = bourse.order_book(actifs)
+carnet_fournisseur = bourse.order_book(actifs, clients)
+eolien, ccg = actifs.iloc[0], actifs.iloc[1]
+```
+
+::: {.figure-large}
+```{python}
+ordres = bourse.load_orders()
+fig = plt.figure(figsize=(10, 3.2))
+prix_enchere, volume_enchere = bourse.exchange_overview(fig, ordres)
+style.add_source(fig, "ordres illustratifs", str(annee_prix))
+plt.show()
+```
+:::
+
+:::: {.columns .sous-schema}
+::: {.column width="50%"}
+**Ordre d'achat** : « j'achète tel volume, à un prix **maximal** de… ».
+**Ordre de vente** : « je vends tel volume, à un prix **minimal** de… ».
+:::
+::: {.column width="50%"}
+**Bourse** (EPEX SPOT en France), enchère de la veille : ordres jusqu'à 12 h, puis
+un prix par quart d'heure du lendemain, payé et reçu par tous les ordres retenus.
+:::
+::::
+
+::: {.notes}
+Du planificateur au marché : plus personne ne connaît tous les coûts. Chaque acteur
+connaît les siens et les traduit en ordres, la bourse les agrège.
+
+Lecture : les achats classés par prix maximal décroissant forment la courbe d'achat,
+les ventes classées par prix minimal croissant la courbe de vente. Au croisement,
+`{python} number(prix_enchere)` €/MWh : A1 et A2 sont servis, V1 vend tout, V2 en
+partie, V3 et A3 restent hors du marché. Le prix est fixé par le dernier ordre
+retenu (V2). Un carnet réel compte des milliers d'ordres : les paliers deviennent fins.
+
+EPEX SPOT (*European Power Exchange*) : bourse de l'électricité, opérateur de marché
+désigné en France, comme Nord Pool. Enchère de la veille, ou *day-ahead* : carnet
+fermé à 12 h, résultats publiés en début d'après-midi. Un prix par quart d'heure
+depuis la livraison du 1^er^ octobre 2025 (par heure auparavant).
+
+Prix uniforme : chaque vente retenue est payée au prix de l'enchère, pas à son prix
+d'offre. Les ordres d'achat de prix maximal supérieur au prix de l'enchère sont
+servis, les ordres de vente de prix minimal inférieur sont retenus. À égalité, un
+ordre peut n'être servi qu'en partie (V2 ici).
+
+La bourse n'est qu'une partie des échanges : contrats de gré à gré, marchés à terme,
+infrajournalier, ajustement (module architecture des marchés).
+:::
+
+## Un producteur : que mettre dans le carnet ?
+
+:::: {.columns}
+::: {.column width="52%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=bourse.FIGSIZE)
+bourse.portfolio_offer(ax, actifs)
+style.add_source(fig, "portefeuille illustratif", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="48%"}
+Pour le quart d'heure 19 h - 19 h 15 de demain :
+
+- un **parc éolien** : `{python} number(eolien.puissance)` MW prévus, coût variable nul
+- un **cycle combiné** : `{python} number(ccg.puissance)` MW,
+  `{python} number(ccg.cout_variable)` €/MWh
+
+```{python}
+#| output: asis
+print(bourse.order_book_html())
+```
+
+**Quels ordres déposer ?**
+:::
+::::
+
+::: {.notes}
+Laisser le public remplir le carnet. Rappeler que la vente est payée au prix de
+l'enchère, pas au prix de l'offre.
+:::
+
+## Un producteur : offrir son coût variable
+
+:::: {.columns}
+::: {.column width="52%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=bourse.FIGSIZE)
+bourse.portfolio_offer(ax, actifs)
+style.add_source(fig, "portefeuille illustratif", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="48%"}
+```{python}
+#| output: asis
+print(bourse.order_book_html(carnet_producteur))
+```
+
+Chaque MW est offert à son coût variable :
+
+- Prix au-dessus : il produit et gagne l'écart.
+- Prix en dessous : il ne produit pas.
+:::
+::::
+
+::: {.notes}
+Lecture du carnet : vendre `{python} number(eolien.puissance)` MW à tout prix positif
+ou nul,
+et `{python} number(ccg.puissance)` MW de plus si le prix atteint le coût du cycle
+combiné.
+
+L'offre de vente reproduit le merit order du portefeuille.
+
+Offrir l'éolien à 0 : sans aide liée à la production, produire à prix négatif coûte.
+Avec un complément de rémunération, le producteur peut offrir en dessous de zéro
+(module ENR et flexibilités).
+:::
+
+## Offrir son coût variable : une hypothèse
+
+:::: {.columns}
+::: {.column width="50%"}
+**En concurrence pure et parfaite**, le producteur ne pèse pas sur le prix et il est
+payé au prix de l'enchère :
+
+- Offrir plus cher : risquer de ne pas produire quand c'était rentable.
+- Offrir moins cher : risquer de produire à perte.
+
+Offrir son coût variable est sa meilleure stratégie.
+:::
+::: {.column width="50%"}
+**Si l'hypothèse tombe** : un producteur dont l'offre fait le prix peut le faire
+monter, en offrant au-dessus de son coût ou en retirant de la capacité. C'est le
+**pouvoir de marché**. Pas besoin d'être gros : il suffit d'être indispensable,
+comme la dernière TAC avant la défaillance.
+
+**Coût variable au sens large** : valeur d'usage des stocks, coûts de démarrage.
+:::
+::::
+
+::: {.formel}
+Preneur de prix : $\max_{0 \le q \le \Pmax} (p - \CV)\, q$ donne $q = \Pmax$ si
+$p > \CV$ et $q = 0$ si $p < \CV$ : l'offre est le palier au coût variable.
+:::
+
+::: {.notes}
+« Concurrence pure et parfaite » : nombreux acteurs, chacun trop petit pour influencer
+le prix, information complète. Sur le marché français, la production reste très
+concentrée (module système) : l'hypothèse se discute.
+
+Le pouvoir de marché tient à la position, pas à la taille. Quand le parc est presque
+entièrement appelé, le propriétaire de la dernière TAC disponible est pivot : sans
+lui, une partie de la demande est coupée. Face à une demande qui réagit peu au prix,
+il peut offrir bien au-dessus de son coût variable, jusqu'à la VOLL, sans perdre son
+volume (retour sur la slide « Quand le parc ne suffit pas »). C'est une des raisons
+du plafond de prix de l'enchère européenne : il borne cet abus. Mais il borne aussi
+les prix de rareté légitimes, qui servent à couvrir les coûts fixes : arbitrage repris
+avec le long terme et la capacité.
+
+La surveillance des marchés de gros (CRE, règlement européen REMIT) vise justement les
+manipulations de prix et la rétention de capacité.
+
+Les coûts de démarrage rendent l'offre au coût variable insuffisante : un ordre bloc
+sur plusieurs quarts d'heure permet de les couvrir (Euphemia, plus loin).
+:::
+
+## Producteur et fournisseur : que mettre dans le carnet ?
+
+:::: {.columns}
+::: {.column width="52%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=bourse.FIGSIZE)
+bourse.portfolio_offer(ax, actifs, clients)
+style.add_source(fig, "portefeuille illustratif", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="48%"}
+Même parc, et des **clients** à fournir : `{python} number(clients)` MW. Il peut
+produire pour eux ou acheter à la bourse.
+
+```{python}
+#| output: asis
+print(bourse.order_book_html())
+```
+
+**Quels ordres déposer ?**
+:::
+::::
+
+::: {.notes}
+Le fournisseur doit servir ses clients quel que soit le prix. La question est donc :
+produire ou acheter ? Et que faire de ce qui dépasse la demande de ses clients ?
+:::
+
+## Producteur et fournisseur : sa position nette
+
+:::: {.columns}
+::: {.column width="52%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=bourse.FIGSIZE)
+bourse.portfolio_offer(ax, actifs, clients, answer=True)
+style.add_source(fig, "portefeuille illustratif", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="48%"}
+```{python}
+#| output: asis
+print(bourse.order_book_html(carnet_fournisseur))
+```
+
+- Prix négatif : arrêter l'éolien, acheter les `{python} number(clients)` MW.
+- Entre 0 et `{python} number(ccg.cout_variable)` €/MWh : l'éolien pour ses clients,
+  le reste acheté.
+- Au-dessus : produire `{python} number(actifs.puissance.sum())` MW, vendre les
+  `{python} number(actifs.puissance.sum() - clients)` MW en trop.
+:::
+::::
+
+::: {.notes}
+Lecture du carnet, ordre par ordre :
+
+- acheter `{python} number(carnet_fournisseur.iloc[0].quantite)` MW si le prix est sous
+  le coût du cycle combiné : moins cher que de le faire tourner pour ses clients ;
+- acheter `{python} number(carnet_fournisseur.iloc[1].quantite)` MW de plus si le prix
+  est négatif : être payé pour consommer plutôt que produire ;
+- vendre `{python} number(carnet_fournisseur.iloc[2].quantite)` MW si le prix dépasse le
+  coût du cycle combiné.
+
+Il n'offre que sa position nette, production moins consommation. Le résultat est le
+même que s'il offrait toute sa production à son coût variable et achetait toute la
+consommation de ses clients sans limite de prix : la bourse ne voit que l'écart.
+:::
+
+## La bourse retrouve l'optimum
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=dispatch.FIGSIZE)
+eq = dispatch.equilibrium(ax, parc, demande.loc["normale"])
+style.add_source(fig, "parc et demande illustratifs", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+En concurrence pure et parfaite :
+
+- Les ventes, chacune au coût variable, forment **le merit order**.
+- Les achats forment **la courbe de demande**.
+- Le prix de l'enchère est le coût variable de la filière marginale.
+
+Mêmes centrales appelées, même prix, même surplus que chez le planificateur.
+:::
+::::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+C'est le résultat du module cadre, vu sur la bourse : en concurrence pure et parfaite,
+le marché décentralise l'optimum. Personne ne connaît tous les coûts, chacun offre
+les siens, et l'agrégation des carnets reconstitue le merit order.
+
+Ce que ce résultat ne dit pas : la rente inframarginale couvre-t-elle les coûts
+fixes ? C'est la question du long terme.
+:::
+
+## Euphemia : une enchère pour toute l'Europe
+
+:::: {.columns}
+::: {.column width="50%"}
+**Couplage des marchés** : les bourses européennes mettent leurs carnets en commun.
+Un algorithme, **Euphemia**, calcule en une fois les prix de toutes les zones et les
+échanges entre elles.
+:::
+::: {.column width="50%"}
+**Comme le planificateur** : retenir les ordres qui maximisent le surplus, sous les
+capacités d'échange entre zones. Puis fixer des prix compatibles avec ce choix.
+Ordres complexes possibles : blocs sur plusieurs quarts d'heure, ordres liés.
+:::
+::::
+
+::: {.formel}
+$\max \sum_{a} p_a q_a - \sum_{v} p_v q_v$ sous l'équilibre de chaque zone et les
+capacités d'échange. Sans ordres blocs, problème linéaire : le prix d'une zone est le
+multiplicateur de Lagrange de son équilibre. Avec eux, non convexe : les prix se
+calculent dans un second temps.
+:::
+
+::: {.attention}
+Interconnexions saturées : les prix des zones se séparent.
+:::
+
+::: {.notes}
+SDAC (*single day-ahead coupling*) : couplage unique de la veille, qui réunit les
+bourses et les gestionnaires de réseau de transport de l'Union. Euphemia :
+*Pan-European Hybrid Electricity Market Integration Algorithm*. Les ordres blocs
+(tout ou rien sur plusieurs quarts d'heure) rendent le problème non convexe : il n'existe
+pas toujours de prix qui rende chaque décision cohérente. Euphemia cherche d'abord la
+sélection d'ordres de surplus maximal (séparation et évaluation), puis des prix tels
+qu'aucun ordre accepté ne perde d'argent. Il faut parfois rejeter un bloc pourtant
+rentable aux prix affichés (ordre « paradoxalement rejeté »), et refaire le calcul.
+C'est la version réelle des non-convexités vues avec les paliers.
+
+Sans congestion, un seul prix pour les zones couplées. Capacités d'échange
+simplifiées ici : dans le centre-ouest de l'Europe, elles sont calculées à partir des
+flux physiques sur le réseau (méthode *flow-based*). Détails au module architecture
+des marchés.
+:::
+
 ## À retenir {partie="Synthèse"}
 
 ::: {.a-retenir}
-1. **Court terme** : exploiter un parc, un stockage et un réseau donnés, sans investir.
+1. **Court terme** : exploiter un parc de production, des stockages et un réseau
+   donnés, sans investir.
 2. **Seuls les coûts variables comptent** : combustible, CO₂ et usure pour le gaz,
    valeur d'usage pour les stocks (hydraulique, nucléaire), coût quasi nul pour les
    renouvelables.
@@ -596,6 +937,9 @@ renoncent.
    une rente inframarginale.
 5. **Rareté** : quand le parc ne suffit pas, le prix monte jusqu'à la valeur de
    l'énergie non distribuée (VOLL) et une partie de la demande est coupée.
+6. **Bourse** : en concurrence pure et parfaite, chaque acteur offre son coût variable
+   (sa position nette s'il fournit aussi des clients), et l'enchère retrouve le merit
+   order et le prix du planificateur.
 :::
 
 ::: {.notes}
