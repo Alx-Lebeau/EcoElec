@@ -1,0 +1,4 @@
+filiere,investissement,exploitation_fixe,duree_vie,taux_actualisation,cout_variable
+tac,520,21,30,0.07,
+ccg,900,34,30,0.07,
+nucleaire,8300,100,60,0.07,10

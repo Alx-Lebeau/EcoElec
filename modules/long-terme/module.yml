@@ -1,5 +1,9 @@
 titre: "Équilibre de long terme"
-prerequis: []                        # à définir
-objectifs: []
-duree: null                          # minutes de la base
+prerequis: [cadre, court-terme]
+objectifs:
+  - "Délimiter le long terme : choisir le parc, investissement compris"
+  - Définir le LCOE et expliquer pourquoi il ne suffit pas pour choisir un parc
+  - Annualiser un investissement et tracer les courbes de filtrage
+  - Déduire le parc optimal des durées d'équilibre et de la monotone de charge
+duree: null                          # minutes de la base, à estimer (module en cours)
 tp: [tp-long-terme]                  # TP 02 de Cours-EcoElec, à migrer

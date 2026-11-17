@@ -52,10 +52,21 @@ VOM = "#cbd5e1"
 FIGSIZE = (5.6, 4.1)
 
 
+class _Text(str):
+    """Chaîne dont le `repr` garde les caractères tels quels.
+
+    Quarto affiche le `repr` d'une expression en ligne (`{python} …`), et le `repr`
+    d'une chaîne ordinaire échappe l'espace fine insécable (« 3\\u202f099 »).
+    """
+
+    def __repr__(self) -> str:
+        return f"'{self}'"
+
+
 def number(x: float, digits: int = 0) -> str:
     """Nombre à la française : virgule décimale, espace fine des milliers."""
-    text = f"{x:,.{digits}f}".replace(",", " ").replace(".", ",")
-    return text
+    text = f"{x:,.{digits}f}".replace(",", "\u202f").replace(".", ",")
+    return _Text(text)
 
 
 def load_gas_plants() -> pd.DataFrame:

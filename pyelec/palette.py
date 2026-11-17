@@ -22,6 +22,7 @@ COLORS: dict[str, str] = {
     "bioenergies": "#6aa84f",
     "stockage": "#c77dba",
     "END": "#1f2937",
+    "delestage": "#1f2937",
 }
 
 
@@ -42,6 +43,7 @@ LABELS: dict[str, str] = {
     "bioenergies": "Bioénergies",
     "stockage": "Stockage",
     "END": "Énergie non distribuée",
+    "delestage": "Délestage",
 }
 
 

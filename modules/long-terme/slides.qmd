@@ -1,3 +1,758 @@
-## À rédiger
+## Rappel : le court terme {.rappel module="court-terme"}
 
-Module en ébauche.
+- **Court terme** : le parc est donné, on décide seulement qui produit.
+- **Merit order** : les centrales sont appelées par coût variable croissant.
+- **Prix** : coût variable de la filière marginale. Les filières moins chères touchent
+  une **rente inframarginale**, qui doit couvrir leurs coûts fixes.
+
+## Le long terme : choisir le parc {partie="Le problème"}
+
+```{python}
+import matplotlib.pyplot as plt
+
+from pyelec import investment, label, style
+from pyelec.dispatch import number
+
+style.use()
+options = investment.load_options()
+securite = investment.load_reliability()
+# Délestage stylisé : VOLL choisie pour que délestage et TAC se croisent au critère
+# de défaillance (3 h).
+avec_delestage = investment.with_load_shedding(options, securite["critere_defaillance"])
+voll = avec_delestage.attrs["voll"]
+annee_prix = options.attrs["annee"]
+segments = investment.envelope(avec_delestage)
+courbe = investment.load_curve()
+monotone = investment.duration_curve(courbe)
+parc = investment.optimal_fleet(avec_delestage, monotone)
+source_options = "ENTSO-E, ERAA 2024 (gaz) ; hypothèse type EPR2 (nucléaire) ; CRE (prix)"
+source_courbe = "RTE, éCO2mix (consommation horaire)"
+
+
+def cf(filiere):
+    """Coût fixe annuel (annuité et exploitation) en k€/MW/an, mis en forme."""
+    return number(options.loc[filiere, "cout_fixe"] / 1000)
+
+
+def cv(filiere):
+    """Coût variable en €/MWh, mis en forme."""
+    return number(options.loc[filiere, "cout_variable"])
+```
+
+:::: {.columns}
+::: {.column width="50%"}
+**Court terme**
+
+- le parc est **donné**
+- on décide qui produit, heure par heure
+- seuls les coûts variables comptent
+:::
+::: {.column width="50%"}
+**Long terme**
+
+- le parc est **à choisir** : quelles filières, combien de MW
+- on décide aussi qui produit ensuite
+- les **coûts d'investissement** entrent dans le calcul
+:::
+::::
+
+::: {.attention}
+Long terme ne veut pas dire lointain : c'est l'horizon où les capacités installées
+peuvent changer.
+:::
+
+::: {.notes}
+Même définition économique que pour le court terme : ce qui distingue les deux
+horizons, c'est ce qui est fixé. À long terme, construire, prolonger ou fermer une
+centrale fait partie des décisions.
+
+Construire une centrale prend de quelques années (turbine au gaz) à plus d'une
+décennie (nucléaire) : les décisions du long terme engagent le système pour des
+décennies, sous de fortes incertitudes (coûts, consommation, prix des combustibles).
+Le module raisonne d'abord sans incertitude.
+:::
+
+## Investir pour dépenser moins ensuite
+
+:::: {.columns}
+::: {.column width="50%"}
+**Ce que coûte une centrale**
+
+- **investissement** : la construction, payée avant la première production
+- **coûts fixes d'exploitation** : personnel, maintenance, assurances
+- **coûts variables** : combustible, CO₂, usure
+:::
+::: {.column width="50%"}
+**L'arbitrage du long terme**
+
+Investir plus aujourd'hui, c'est dépenser moins en combustible demain.
+
+- **Moyen de base** : coût fixe élevé, coût variable faible. Intéressant s'il
+  tourne beaucoup d'heures.
+- **Moyen de pointe** : coût fixe faible, coût variable élevé. Intéressant s'il
+  tourne peu d'heures.
+:::
+::::
+
+::: {.notes}
+Les deux structures de coûts extrêmes : le nucléaire, très cher à construire, très
+peu cher à faire tourner, moyen de base typique, et la turbine à combustion,
+l'inverse, moyen de pointe typique. Le cycle combiné, entre les deux, est un moyen
+de semi-base.
+
+Toute la question devient : combien d'heures chaque centrale tournera-t-elle ?
+
+Question à poser au public : laquelle construire ? Réponse attendue : « celle qui
+produit le MWh le moins cher ». C'est l'idée du LCOE, slide suivante, et ses limites
+mènent à la méthode du module.
+:::
+
+## Le LCOE : le coût moyen du MWh {partie="LCOE"}
+
+:::: {.columns}
+::: {.column width="50%"}
+**LCOE** (*levelized cost of energy*) : coût complet d'une centrale sur sa durée de
+vie, divisé par l'énergie qu'elle produit.
+
+Tous les coûts y entrent : investissement, exploitation, combustible. Le résultat
+tient en un chiffre, en €/MWh.
+:::
+::: {.column width="50%"}
+**Actualisation** : un euro dépensé dans vingt ans pèse moins qu'un euro dépensé
+aujourd'hui. Coûts et production futurs sont ramenés au présent par le **taux
+d'actualisation**.
+:::
+::::
+
+::: {.formel}
+$$
+\text{LCOE} = \frac{\sum_{t=1}^{n} C_t \,/\, (1+r)^t}{\sum_{t=1}^{n} E_t \,/\, (1+r)^t}
+$$
+
+$C_t$ : coûts de l'année $t$, $E_t$ : énergie produite, $r$ : taux d'actualisation,
+$n$ : durée de vie.
+:::
+
+::: {.notes}
+LCOE : *levelized cost of energy* (ou *of electricity*), coût actualisé de l'énergie.
+C'est le prix constant du MWh qui rembourserait exactement tous les coûts de la
+centrale, rémunération du capital comprise.
+
+Indicateur très utilisé dans le débat public (rapports de l'Agence internationale de
+l'énergie, de Lazard, de la Cour des comptes), souvent pour comparer les filières :
+ses limites, deux slides plus loin, montrent pourquoi c'est risqué.
+
+Actualiser la production surprend souvent : c'est ce qui fait du LCOE un prix
+constant. Les recettes futures d'un MWh vendu au prix LCOE sont actualisées comme les
+coûts.
+:::
+
+## Le LCOE dépend des heures de fonctionnement
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.4))
+investment.lcoe_curves(ax, options)
+style.add_source(fig, source_options, str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Les coûts fixes se répartissent sur la production : plus une centrale tourne,
+moins son MWh coûte.
+
+- **Beaucoup d'heures** : le nucléaire est le moins cher.
+- **Peu d'heures** : le cycle combiné au gaz (**CCG**), puis la turbine à
+  combustion (**TAC**).
+
+Le classement dépend du nombre d'heures supposé.
+:::
+::::
+
+::: {.notes}
+Lecture : pour chaque filière, coût moyen du MWh selon le nombre d'heures où elle
+produit à pleine puissance dans l'année. Les courbes partent de très haut à gauche :
+les coûts fixes sont répartis sur peu de MWh.
+
+Ordres de grandeur : à 8 000 heures, nucléaire
+`{python} number(investment.lcoe(options, 8000).loc[8000, "nucleaire"])` €/MWh et
+CCG `{python} number(investment.lcoe(options, 8000).loc[8000, "ccg"])` €/MWh. À
+1 000 heures, `{python} number(investment.lcoe(options, 1000).loc[1000, "nucleaire"])`
+et `{python} number(investment.lcoe(options, 1000).loc[1000, "ccg"])` €/MWh.
+
+Facteur de charge : heures de fonctionnement à pleine puissance divisées par les
+8 760 heures de l'année.
+
+Hypothèses de coût détaillées dans la partie suivante : gaz d'après l'ERAA 2024
+d'ENTSO-E, nucléaire du type EPR2. Coût variable du CCG et de la TAC calculé avec les
+prix du gaz et du CO₂ de `{python} annee_prix` (module court terme).
+:::
+
+## Les limites du LCOE
+
+:::: {.columns}
+::: {.column width="50%"}
+**Il agrège beaucoup d'hypothèses** : investissement, durée de vie, taux
+d'actualisation, prix des combustibles et du CO₂, heures de fonctionnement.
+
+**Les heures de fonctionnement dépendent du reste du système** : du parc, de la
+consommation, des flexibilités (stockage, effacement, interconnexions).
+:::
+::: {.column width="50%"}
+**Tous les MWh y ont la même valeur** : or le prix change d'une heure à l'autre.
+Un MWh à la pointe d'un soir d'hiver vaut plus qu'un MWh un dimanche après-midi de
+printemps.
+
+**Le LCOE ne suffit pas pour choisir un parc** : il faut raisonner sur le système
+entier, coûts et valeur des MWh.
+:::
+::::
+
+::: {.sigles}
+- LCOE : coût actualisé de l'énergie
+:::
+
+::: {.notes}
+Le LCOE répond à la question « combien coûte un MWh de cette centrale, si elle
+tourne tant d'heures ? ». Il ne dit pas combien d'heures elle tournera, ni ce que
+valent ses MWh. Les deux dépendent des autres centrales et de la consommation.
+
+Exemples d'interactions avec le système :
+
+- plus il y a de nucléaire, moins chaque réacteur supplémentaire tourne d'heures à
+  pleine puissance : il finit par moduler
+- les éoliennes produisent toutes en même temps quand il y a du vent : leurs MWh
+  arrivent quand le prix est bas, et d'autant plus qu'il y en a
+- un stockage déplace la production des heures creuses vers la pointe : il change
+  les heures de fonctionnement des autres centrales
+
+Le LCOE reste utile pour suivre l'évolution des coûts d'une filière (baisse du coût
+du solaire, par exemple), pas pour comparer des filières aux profils différents.
+:::
+
+## Le taux d'actualisation pèse lourd {.approfondissement}
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.4))
+taux = investment.lcoe_discount(ax, {"nucleaire": 7500, "ccg": 4000})
+style.add_source(fig, source_options, str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Taux d'actualisation** : rémunération exigée par ceux qui financent, selon le
+risque du projet.
+
+Une centrale à fort investissement y est très sensible : son coût est payé presque
+entièrement avant de produire.
+
+Le taux dépend du financement : prêt public, contrat garanti ou marché.
+:::
+::::
+
+::: {.notes}
+Lecture : nucléaire à `{python} number(taux["nucleaire"].iloc[0])` €/MWh avec un taux
+de 1 %, `{python} number(taux["nucleaire"].iloc[-1])` €/MWh avec 12 %. Le coût du CCG,
+dominé par le combustible, bouge peu.
+
+Le taux d'actualisation d'un investisseur est son coût moyen pondéré du capital : la
+rémunération des prêteurs et des actionnaires. Un projet risqué paie plus cher son
+financement. D'où l'importance des contrats qui réduisent le risque (contrats pour
+différence, tarifs garantis) pour les filières à fort investissement : module
+nucléaire.
+
+Le choix du taux est aussi un choix collectif : la puissance publique actualise à un
+taux plus bas que les marchés financiers (en France, taux de référence du calcul
+socio-économique de France Stratégie).
+:::
+
+## Deux erreurs fréquentes {.approfondissement}
+
+```{python}
+journee, prix_moyen, prix_capte = investment.capture_price_example()
+```
+
+:::: {.columns}
+::: {.column width="50%"}
+**Comparer les LCOE de filières aux profils différents**
+
+Une TAC qui sert la pointe et un parc éolien qui produit au gré du vent ne rendent
+pas le même service : leurs MWh ne valent pas la même chose.
+:::
+::: {.column width="50%"}
+**Comparer le LCOE au prix moyen du marché**
+
+Une centrale vend au prix des heures où elle produit. Comparer plutôt au **prix
+capté** : prix moyen pondéré par sa production.
+:::
+::::
+
+```{python}
+#| output: asis
+entete = "| | " + " | ".join(journee["tranche"]) + " |"
+lignes = [entete, "|:--|" + "--:|" * len(journee)]
+for col, nom in [("prix", "Prix (€/MWh)"), ("solaire", "Solaire (MW)"), ("pointe", "Pointe (MW)")]:
+    lignes.append(f"| {nom} | " + " | ".join(number(v) for v in journee[col]) + " |")
+print("\n".join(lignes))
+```
+
+Prix moyen : **`{python} number(prix_moyen)` €/MWh**. Prix capté : solaire
+**`{python} number(prix_capte["solaire"])` €/MWh**, pointe
+**`{python} number(prix_capte["pointe"])` €/MWh**.
+
+::: {.sigles}
+- LCOE : coût actualisé de l'énergie
+- TAC : turbine à combustion
+:::
+
+::: {.notes}
+Prix capté : recettes de marché de la centrale divisées par sa production. Exemple
+d'une journée stylisée en six tranches de quatre heures : le solaire produit surtout
+en milieu de journée, quand le prix est bas, la centrale de pointe seulement en fin
+d'après-midi, quand il est haut. Même marché, prix captés du simple au triple.
+
+Pour une centrale de pointe, le prix capté dépasse nettement le prix moyen. Pour le solaire, il passe
+sous le prix moyen à mesure que le parc solaire grandit : toutes les installations
+produisent aux mêmes heures et font baisser le prix de ces heures (module ENR et
+flexibilités).
+
+Ce que les deux erreurs ont en commun : elles ignorent la valeur des MWh pour le
+système, qui dépend du moment où ils sont produits.
+:::
+
+## Le problème du planificateur à long terme {partie="Équilibre de long terme"}
+
+:::: {.columns}
+::: {.column width="50%"}
+Choisir le parc **et** son fonctionnement pour **minimiser le coût total** d'une
+année représentative :
+
+- investissement et coûts fixes du parc
+- coûts variables de production
+- coût de la consommation non servie
+:::
+::: {.column width="50%"}
+**Sous contraintes**
+
+- offre égale à la demande à chaque heure
+- sécurité d'approvisionnement
+- environnement : émissions, biodiversité
+- techniques : réseau, démarrages
+:::
+::::
+
+::: {.formel}
+$$
+\begin{aligned}
+\min_{\Pmax,\, p} \; & \textstyle\sum_i \CF_i \times \Pmax_i
+  + \sum_{t} \sum_i \CV_i \times p_{i,t} + \sum_t \VOLL \times \END_t \\
+\text{avec} \; & \textstyle\sum_i p_{i,t} + \END_t = D_t, \;\;
+  0 \le p_{i,t} \le \Pmax_i \quad \forall t
+\end{aligned}
+$$
+:::
+
+::: {.notes}
+Le long terme englobe le court terme : une fois le parc choisi, il faut encore le
+faire fonctionner au mieux, heure par heure, selon le merit order. Le coût d'un parc
+se mesure donc sur une année entière, avec toutes ses situations de consommation.
+
+Le planificateur bienveillant reste la référence théorique. La question de savoir si
+un marché retrouve ce parc optimal vient ensuite.
+
+Le module commence par un cadre simple : pas d'incertitude, une seule zone, pas de
+contraintes techniques. Version formelle : $\CF_i$ coût fixe annuel par MW,
+$\Pmax_i$ capacité à construire, $p_{i,t}$ production de l'heure $t$, $D_t$ demande,
+$\END_t$ énergie non distribuée. Problème linéaire : les centrales se construisent ici
+MW par MW.
+:::
+
+## La méthode des *screening curves* {partie="Screening curves"}
+
+***Screening curves*** : une méthode graphique pour trouver le parc optimal, à partir
+des coûts de chaque filière.
+
+```{python}
+#| output: asis
+lignes = [
+    "| Filière | Investissement (€/kW) | Exploitation (€/kW/an) | Durée de vie (ans) "
+    "| Coût variable (€/MWh) |",
+    "|:--|--:|--:|--:|--:|",
+]
+for f, r in options.iterrows():
+    lignes.append(
+        f"| {label(f)} | {number(r.investissement)} | {number(r.exploitation_fixe)} "
+        f"| {number(r.duree_vie)} | {cv(f)} |"
+    )
+print("\n".join(lignes))
+```
+
+:::: {.columns}
+::: {.column width="40%"}
+Taux d'actualisation :
+`{python} number(options["taux_actualisation"].iloc[0] * 100)` %, le même pour
+toutes les filières.
+:::
+::: {.column width="60%"}
+**Hypothèses simplificatrices** : une seule zone sans réseau, des filières
+pilotables seulement, pas de contraintes techniques, pas de parc existant.
+:::
+::::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+:::
+
+::: {.notes}
+Trois options, de la pointe à la base : la TAC, peu chère à construire et chère à
+faire tourner, le CCG, et le nucléaire, très cher à construire et peu cher à faire
+tourner.
+
+Hypothèses, hors intérêts pendant la construction :
+
+- TAC et CCG : investissement et coûts fixes d'exploitation par défaut de l'ERAA 2024
+  d'ENTSO-E (nouvelles centrales, 2026). Durée de vie de 30 ans retenue pour le cours.
+- Nucléaire : ordre de grandeur d'un réacteur du type EPR2 (programme de six
+  réacteurs de 1 670 MW chiffré entre 73 et 80 milliards d'euros). Coût variable :
+  combustible et usure, sans valeur d'usage.
+- Coût variable des CCG et des TAC calculé avec les prix moyens du gaz et du CO₂ de
+  `{python} annee_prix` (module court terme).
+- Même taux d'actualisation pour toutes les filières, pour simplifier.
+
+Pilotables : on choisit quand elles produisent, jusqu'à leur capacité. Éolien et
+solaire, dont la production dépend de la météo, et le stockage s'y ajoutent plus
+tard.
+:::
+
+## Annualiser l'investissement : l'annuité
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.2))
+investment.annuity_schedule(ax, options, "nucleaire")
+style.add_source(fig, "options illustratives", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Investissement payé une fois, production étalée sur des décennies : on le convertit
+en **annuités**.
+
+Comme un crédit : une somme constante chaque année, qui rembourse le capital et le
+rémunère au taux d'actualisation.
+
+**Coût fixe annuel** : annuité et coûts fixes d'exploitation. En k€/MW/an : TAC
+`{python} cf("tac")`, CCG `{python} cf("ccg")`, nucléaire `{python} cf("nucleaire")`.
+
+::: {.formel}
+$\CF = I \times \dfrac{r}{1 - (1+r)^{-n}} + \text{FOM}$
+:::
+:::
+::::
+
+::: {.notes}
+Exemple du nucléaire : `{python} number(options.loc["nucleaire", "investissement"])` €/kW
+sur `{python} number(options.loc["nucleaire", "duree_vie"])` ans, au taux de
+`{python} number(options.loc["nucleaire", "taux_actualisation"] * 100)` %. Les premières
+années, l'annuité paie presque seulement la rémunération du capital. Au total, les
+annuités représentent
+`{python} number(options.loc["nucleaire", "annuite"] * options.loc["nucleaire", "duree_vie"] / 1000 / options.loc["nucleaire", "investissement"], 1)`
+fois l'investissement : le coût du capital pèse autant que la construction.
+
+L'annuité permet de comparer des centrales aux durées de vie différentes sur une même
+année. Les coûts fixes d'exploitation (personnel, maintenance, assurances) s'y
+ajoutent : `{python} number(options.loc["nucleaire", "exploitation_fixe"])` €/kW/an
+pour le nucléaire.
+
+Version formelle : $I$ investissement par MW, $r$ taux d'actualisation, $n$ durée de
+vie, FOM (*fixed operation and maintenance*) coûts fixes d'exploitation. La valeur
+actualisée des $n$ annuités égale l'investissement.
+:::
+
+## Le coût total d'un MW
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig = plt.figure(figsize=(6.2, 5.3))
+ax, ax_zoom = fig.subplots(2, 1, gridspec_kw={"height_ratios": [2.4, 1], "hspace": 0.55})
+investment.screening_curves(ax, avec_delestage)
+investment.shedding_zoom(ax_zoom, avec_delestage)
+style.add_source(fig, f"{source_options} ; VOLL stylisée", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Coût annuel d'un MW selon le nombre d'heures où il produit :
+
+- **ordonnée à l'origine** : le coût fixe annuel, payé même sans produire
+- **pente** : le coût variable, payé à chaque heure de production
+
+**Délestage** : un moyen fictif, sans coût fixe, au coût variable de la **VOLL**
+(ici `{python} number(round(voll, -3))` €/MWh).
+
+::: {.formel}
+$\text{CT}_i(h) = \CF_i + \CV_i \times h$
+:::
+:::
+::::
+
+::: {.sigles}
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+Ce sont les *screening curves* : une droite par filière. Un MW qui ne produit jamais
+coûte son coût fixe. Chaque heure de production ajoute le coût variable.
+
+Délestage : ne pas servir 1 MW de consommation ne coûte rien tant qu'il n'est pas
+nécessaire, puis la VOLL à chaque heure où il manque. C'est la droite presque
+verticale, à gauche, lisible dans le zoom.
+
+VOLL stylisée, choisie pour que délestage et TAC se croisent à
+`{python} number(securite["critere_defaillance"])` h, la durée du critère de
+défaillance français. Même ordre de grandeur que l'estimation de RTE retenue par la
+CRE, `{python} number(securite["voll"])` €/MWh (délibération 2022-152, méthode du coût
+direct, coupures de deux heures en hiver). Les estimations de la même étude vont de
+9 000 à 46 000 €/MWh selon la méthode.
+
+Lien avec le LCOE : le LCOE à h heures est la pente de la droite qui joint l'origine
+au point de la courbe d'abscisse h. Mêmes données, mais présentées en coût total par
+MW, elles permettent de raisonner sur le système.
+:::
+
+## Les durées d'équilibre
+
+```{python}
+delestage_tac, tac_ccg, ccg_nucleaire = (s.start for s in segments[1:])
+```
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.4))
+investment.screening_curves(ax, avec_delestage, lower=True, breakeven=True)
+style.add_source(fig, f"{source_options} ; VOLL stylisée", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Pour chaque nombre d'heures, une filière est la moins chère :
+
+- moins de `{python} number(delestage_tac)` h : le **délestage**
+- jusqu'à `{python} number(tac_ccg)` h : la **TAC**
+- jusqu'à `{python} number(ccg_nucleaire)` h : le **CCG**
+- au-delà : le **nucléaire**
+
+**Durée d'équilibre** : nombre d'heures où deux filières coûtent autant.
+
+::: {.formel}
+$h_{ij} = \dfrac{\CF_j - \CF_i}{\CV_i - \CV_j}$
+:::
+:::
+::::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+:::
+
+::: {.notes}
+Lecture : l'enveloppe inférieure, en trait épais au-dessus de l'aire grisée, donne le
+coût minimal d'un MW selon son nombre d'heures de fonctionnement. Les droites en
+pointillés ne servent qu'à la construire. Aux durées d'équilibre, le coût fixe en plus
+de la filière la plus chère à construire est juste compensé par ses économies de
+combustible.
+
+Une filière peut n'être la moins chère pour aucune durée : elle ne sera jamais
+construite, quelle que soit la consommation.
+
+Les durées d'équilibre ne dépendent que des coûts : avec un gaz plus cher, le
+nucléaire devient rentable pour moins d'heures.
+
+Délestage et TAC : `{python} number(delestage_tac)` h. Construire une TAC pour servir
+une consommation présente moins longtemps coûte plus que de la couper. C'est la
+logique du critère de sécurité d'approvisionnement français : trois heures de
+défaillance par an en espérance (module capacité).
+:::
+
+## La courbe de charge
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.2))
+investment.chronological_load(ax, courbe)
+style.add_source(fig, source_courbe, str(courbe.index[0].year))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Consommation de la France, heure par heure, sur une année :
+
+- entre `{python} number(monotone[-1])` et `{python} number(monotone[0])` GW
+- plus élevée l'hiver (chauffage)
+- variations du jour, de la nuit et de la semaine
+
+**Combien de MW de chaque filière construire pour la servir ?**
+:::
+::::
+
+::: {.notes}
+Courbe de charge réelle de `{python} courbe.index[0].year` (module système pour sa
+lecture détaillée). La méthode suppose cette année représentative des années à venir.
+
+Une centrale construite pour servir la consommation de pointe ne sert que quelques
+heures par an : c'est là que le nombre d'heures de fonctionnement entre en jeu.
+:::
+
+## La monotone de charge
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.2))
+investment.load_duration(ax, monotone, marks=(2000,))
+style.add_source(fig, source_courbe, str(courbe.index[0].year))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+**Monotone** : les heures de l'année classées par consommation décroissante.
+
+On y lit, pour chaque niveau de puissance, **pendant combien d'heures** la
+consommation le dépasse.
+
+La chronologie disparaît : seule compte la durée.
+:::
+::::
+
+::: {.notes}
+Construction : trier les 8 760 valeurs horaires de la plus forte à la plus faible.
+En anglais, *load duration curve*.
+
+Lecture inverse : un MW situé à une hauteur donnée de la monotone sert la
+consommation pendant le nombre d'heures où elle dépasse cette hauteur. Les premiers
+MW, en bas, servent toute l'année. Les derniers, en haut, quelques heures seulement.
+
+Perdre la chronologie suppose qu'aucune contrainte ne relie les heures entre elles :
+ni stockage, ni démarrages, ni rampes. Hypothèse à lever plus tard.
+:::
+
+## Croiser les deux : le parc optimal
+
+:::: {.columns}
+::: {.column width="62%"}
+```{python}
+#| classes: figure-colonne
+fig = plt.figure(figsize=(6.6, 5.2))
+investment.screening_method(fig, avec_delestage, monotone)
+style.add_source(fig, f"{source_options} ; {source_courbe}", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="38%"}
+Chaque tranche de la monotone revient à la filière la moins chère pour son nombre
+d'heures.
+
+1. Reporter les durées d'équilibre sur la monotone.
+2. Lire les puissances correspondantes.
+3. En déduire les capacités de **base**, de **semi-base** et de **pointe**, et le
+   délestage.
+:::
+::::
+
+::: {.notes}
+Lecture de haut en bas : la durée d'équilibre entre CCG et nucléaire
+(`{python} number(ccg_nucleaire)` h) coupe la monotone à
+`{python} number(parc.loc["nucleaire", "haut"])` GW. Toute la consommation en dessous
+est présente plus de `{python} number(ccg_nucleaire)` h par an : nucléaire. De même
+pour la limite entre TAC et CCG à `{python} number(tac_ccg)` h.
+
+Pourquoi c'est optimal : considérer le MW situé à une hauteur donnée de la monotone.
+Il sert un nombre d'heures fixé par la consommation. Le servir par une autre filière
+que la moins chère pour ce nombre d'heures coûterait plus, et chaque MW se traite
+indépendamment des autres.
+
+Tout en haut, la consommation présente moins de `{python} number(delestage_tac)` h
+par an n'est pas servie : `{python} number(parc.loc["delestage", "capacite"], 1)` GW
+délestés au plus fort de l'année.
+:::
+
+## Le parc optimal
+
+```{python}
+#| output: asis
+lignes = [
+    "| Filière | Capacité (GW) | Production (TWh) | Heures à pleine puissance |",
+    "|:--|--:|--:|--:|",
+]
+for f, r in parc.drop(index="delestage").iterrows():
+    lignes.append(
+        f"| {label(f)} | {number(r.capacite)} | {number(r.energie)} | {number(r.heures)} |"
+    )
+print("\n".join(lignes))
+```
+
+:::: {.columns}
+::: {.column width="50%"}
+**Base** : le nucléaire produit l'essentiel de l'énergie.
+
+**Pointe** : des TAC construites pour tourner
+`{python} number(parc.loc["tac", "heures"])` heures par an en moyenne.
+:::
+::: {.column width="50%"}
+**Délestage** : `{python} number(parc.loc["delestage", "capacite"], 1)` GW coupés au
+plus fort de l'année.
+
+Le parc optimal ne dépend que de deux choses : **les coûts** des filières (durées
+d'équilibre) et **la forme** de la consommation (monotone).
+:::
+::::
+
+::: {.notes}
+Une centrale de pointe rentable qui ne tourne presque jamais n'a rien d'absurde : elle
+coûte peu à construire et sert les heures où il faut de la puissance, pas de
+l'énergie.
+
+Parc stylisé, loin du parc français réel : ni éolien, ni solaire, ni hydraulique, ni
+échanges, ni marge de sécurité. Le parc réel hérite aussi de décisions passées, prises
+avec d'autres coûts.
+
+Heures à pleine puissance : production divisée par la capacité. Les centrales d'une
+même filière ne tournent pas toutes autant : celles du bas de la tranche plus que
+celles du haut.
+:::
+
+## À retenir {partie="Synthèse"}
+
+::: {.a-retenir}
+1. **Long terme** : le parc est à choisir, les coûts d'investissement entrent dans le
+   calcul.
+2. **LCOE** : coût moyen du MWh d'une centrale. Il dépend de ses heures de
+   fonctionnement, donc du reste du système, et donne la même valeur à tous les MWh :
+   il ne suffit pas pour choisir un parc.
+3. **Annuité** : l'investissement converti en coût fixe annuel, rémunération du
+   capital comprise.
+4. ***Screening curves*** : coût total d'un MW selon ses heures de fonctionnement.
+   Leur enveloppe inférieure donne la filière la moins chère pour chaque durée, le
+   délestage compris.
+5. **Monotone de charge** : en croisant les durées d'équilibre avec la monotone, on
+   obtient les capacités optimales de base, de semi-base et de pointe.
+:::
+
+::: {.notes}
+Faire reformuler par le public avant d'afficher, si le temps le permet.
+:::

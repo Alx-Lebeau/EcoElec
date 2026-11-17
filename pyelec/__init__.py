@@ -11,6 +11,8 @@ Utilisé par le poly, les slides et les notebooks :
 - `bourse` : carnet d'ordres d'un portefeuille, enchère de la veille ;
 - `dispatch` : court terme d'un parc illustratif (coûts variables, merit order,
   prix, surplus, VOLL).
+- `investment` : long terme (annuités, LCOE, screening curves, monotone de
+  charge, parc optimal).
 
 Les briques de modélisation (dispatch, investissement) arriveront avec la
 migration des modules.

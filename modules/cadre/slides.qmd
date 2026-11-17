@@ -160,7 +160,7 @@ court terme ne compte pas.
 
 Le graphique suppose une seule technologie. Avec plusieurs filières, on choisit
 pour chaque durée la moins chère : peu de coûts fixes pour la pointe, peu de coûts
-variables pour le ruban. Ce sont les courbes de filtrage du module long terme, à
+variables pour le ruban. Ce sont les *screening curves* du module long terme, à
 ne pas développer ici.
 :::
 

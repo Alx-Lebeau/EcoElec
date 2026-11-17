@@ -195,6 +195,47 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
   charbon et gaz d'un cours antérieur de l'auteur.
 - **Licence** : CC BY-SA 4.0.
 
+### `exemple/parc-long-terme.csv`
+
+- **Contenu** : options d'investissement du module long terme (TAC, CCG, nucléaire) :
+  coût d'investissement (`investissement`, €/kW, hors intérêts intercalaires), coûts
+  fixes d'exploitation (`exploitation_fixe`, €/kW/an), durée de vie (ans), taux
+  d'actualisation, coût variable (€/MWh) du nucléaire. Le coût variable des CCG et des
+  TAC est calculé depuis `couts/` (`pyelec.investment.load_options`).
+- **Sources** :
+  - TAC et CCG : ENTSO-E, *ERAA 2024, Annex 1: Assumptions*, figures 16 et 17
+    (valeurs par défaut 2026 des nouvelles centrales, lues sur les graphiques :
+    investissement d'environ 520 €/kW pour les TAC et 900 €/kW pour les CCG, coûts
+    fixes d'exploitation d'environ 21 et 34 €/kW/an), `entsoe-eraa-2024-hypotheses` ;
+  - nucléaire : hypothèse de l'auteur du type EPR2, 8,3 €/W (8 300 €/kW) et 100 €/kW/an
+    de coûts fixes d'exploitation. Ordre de grandeur cohérent avec le programme de six EPR2 de 1 670 MW :
+    devis EDF de 72,8 Md€ de 2020 (décembre 2025) et estimation de la Cour des comptes
+    de 79,9 Md€ de 2023 (janvier 2025), hors frais financiers, soit 7,3 à 8 €/W ;
+  - durées de vie (30 ans pour le gaz, 60 ans pour le nucléaire), taux de 7 % et coût
+    variable du nucléaire : hypothèses du cours.
+- **Précautions** : valeurs lues sur des graphiques (ERAA) ou arrondies. Le taux
+  unique simplifie : l'ERAA retient des taux propres à chaque pays et à chaque filière.
+- **Licence** : CC BY-SA 4.0.
+
+### `couts/securite-approvisionnement.csv`
+
+- **Contenu** : valeur de l'énergie non distribuée retenue en France (VOLL,
+  33 000 €/MWh) et critère de sécurité d'approvisionnement (2 heures de délestage et
+  3 heures de défaillance par an en espérance).
+- **Source** : CRE, délibération n° 2022-152 du 25 mai 2022 (estimation de RTE, méthode
+  du coût direct, coupures de deux heures en hiver), entrée `cre-2022-152` de
+  `commun/biblio.bib` ; code de l'énergie, article D. 141-12-6. Saisie manuelle.
+- **Précautions** : la VOLL dépend fortement de la méthode (9 k€/MWh par le
+  consentement à payer, 46 k€/MWh par le consentement à accepter, même étude). Elle
+  doit être réestimée au moins tous les cinq ans (méthodologie de l'ACER).
+
+### `exemple/prix-capte.csv`
+
+- **Contenu** : journée stylisée en six tranches de quatre heures : prix (€/MWh) et
+  production (MW) d'un parc solaire et d'une centrale de pointe.
+- **Source** : valeurs choisies pour l'exemple du prix capté.
+- **Licence** : CC BY-SA 4.0.
+
 ## À migrer
 
 - Consommation France et disponibilités horaires 2024 des TP (source ENTSO-E
