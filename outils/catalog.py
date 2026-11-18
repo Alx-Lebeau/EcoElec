@@ -56,6 +56,18 @@ class Module:
         return None if any(v is None for v in values) else sum(values)
 
 
+def book_chapters(root: Path) -> list[str]:
+    """Chapitres du poly (_quarto-poly.yml), parties dépliées, dans l'ordre du livre."""
+    config = yaml.safe_load((root / "_quarto-poly.yml").read_text(encoding="utf-8")) or {}
+    chapters = []
+    for item in config.get("book", {}).get("chapters", []):
+        if isinstance(item, str):
+            chapters.append(item)
+        elif isinstance(item, dict):
+            chapters += item.get("chapters", [])
+    return chapters
+
+
 def module_dirs(root: Path) -> list[Path]:
     return sorted(p.parent for p in (root / "modules").glob("*/module.yml"))
 

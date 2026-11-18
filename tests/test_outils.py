@@ -1,5 +1,6 @@
 """Tests de la lecture des modules et parcours, et de la génération des decks."""
 
+import json
 from pathlib import Path
 
 from conftest import module_yml, write
@@ -148,8 +149,8 @@ def test_generate(project: Path):
     # Deck isolé d'un module : tous ses prérequis sont manquants
     alone = (out / "modules/suite/base.qmd").read_text(encoding="utf-8")
     assert 'options="" manquants="base"' in alone
-    assert (out / "parcours/court/index.qmd").exists()
-    assert (out / "index.qmd").exists()
+    assert not (out / "index.qmd").exists()  # accueil : application React (accueil/)
+    assert (out / "catalogue.json").exists()
 
 
 def test_fingerprint_follows_included_files(project: Path):
@@ -162,18 +163,34 @@ def test_fingerprint_follows_included_files(project: Path):
     assert deck.read_text(encoding="utf-8") != before
 
 
-def test_tools_in_track_and_home_pages(project: Path):
+def test_catalogue(project: Path):
     write(project / "modules/suite/outil.qmd", "---\ntitle: Outil\n---\n")
+    write(project / "modules/_exemple/module.yml", module_yml("exemple", []))
+    write(project / "modules/_exemple/poly.qmd", "# exemple\n")
+    write(project / "modules/_exemple/slides.qmd", "## Exemple\n")
     _, modules, tracks = check(project)
     assert modules["suite"].has_tool and not modules["base"].has_tool
     generate(project, modules, tracks)
-    out = project / OUTPUT
-    track = (out / "parcours/court/index.qmd").read_text(encoding="utf-8")
-    assert "Outils interactifs :" in track
-    assert "](../../../../outils/modules/suite/outil.html)" in track
-    home = (out / "index.qmd").read_text(encoding="utf-8")
-    assert "](../../outils/modules/suite/outil.html)" in home
-    assert "](parcours/court/index.html)" in home
+    data = json.loads((project / OUTPUT / "catalogue.json").read_text(encoding="utf-8"))
+    # Ordre du poly, sans le module d'exemple
+    assert [m["id"] for m in data["modules"]] == ["base", "suite"]
+    base, suite = data["modules"]
+    assert base["outil"] is None
+    assert suite["outil"] == "outils/modules/suite/outil.html"
+    assert suite["chapitre"] == "poly/modules/suite/poly.html"
+    assert suite["slides"]["integral"] == "slides/decks/modules/suite/integral.html"
+    assert suite["utilisations"] == [{"parcours": "court", "seance": 1}]
+    (track,) = data["parcours"]
+    assert (track["nom"], track["duree"]) == ("court", 60)
+    (session,) = track["seances"]
+    assert session["deck"] == "slides/decks/parcours/court/seance-01.html"
+    assert session["autonome"] == "autonome/decks/parcours/court/seance-01.html"
+    assert session["modules"][1] == {
+        "id": "suite",
+        "options": ["approfondissement", "formel"],
+        "duree": 30,
+        "rappels": [],
+    }
 
 
 def test_site_root(project: Path):
@@ -182,7 +199,7 @@ def test_site_root(project: Path):
     _, _, tracks = check(project)
     rendu = project / "_rendu"
     write_site(rendu, tracks)
-    assert 'url=slides/decks/index.html"' in (rendu / "index.html").read_text(encoding="utf-8")
     short = (rendu / "parcours/court/index.html").read_text(encoding="utf-8")
-    assert 'url=../../slides/decks/parcours/court/index.html"' in short
+    assert 'url=../../#/parcours/court"' in short
     assert (rendu / ".nojekyll").exists()
+    assert not (rendu / "index.html").exists()  # construit par `npm run build`

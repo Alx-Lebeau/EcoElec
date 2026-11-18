@@ -1,0 +1,39 @@
+/*-- scss:defaults --*/
+
+// Charte du cours : seule source des couleurs et de la police de tous les rendus.
+//   slides.scss (slides), site.scss et site-sombre.scss (poly, outils),
+//   accueil/src/style.css (accueil React, via accueil/src/charte.scss).
+// Couche de thème Quarto à lister APRÈS les autres fichiers .scss du cours
+// (theme: [cosmo, commun/site.scss, commun/charte.scss]) : Quarto empile les couches
+// scss:defaults en ordre inverse, ses variables sont donc déclarées en premier.
+//
+// L'accent cyan ne porte aucun sens : il est réservé à l'habillage (filets,
+// étiquettes, progression) et ne reprend aucune couleur des schémas ni des filières.
+// Polices système uniquement : aucun appel réseau, rendus utilisables hors connexion.
+
+$police: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$police-mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+// Couleurs de la charte
+$nuit: #1e293b; // fonds sombres d'habillage (slide de titre, bandeau de l'accueil)
+$bleu: #1f4e79; // titres et liens
+$accent: #0891b2; // filets, étiquettes, progression
+$accent-clair: #22d3ee; // accent sur fond nuit
+$gris-filet: #e2e8f0;
+$gris-texte: #94a3b8;
+
+// Mode clair
+$clair-fond: #f8fafc;
+$clair-surface: #ffffff;
+$clair-surface-2: #f1f5f9;
+$clair-texte: #0f172a;
+$clair-texte-discret: #64748b;
+
+// Mode sombre
+$sombre-fond: #0b1120;
+$sombre-surface: #131c2e;
+$sombre-surface-2: #1a2438;
+$sombre-filet: #253047;
+$sombre-texte: #e2e8f0;
+$sombre-texte-discret: #94a3b8;
+$sombre-lien: #7dd3fc;

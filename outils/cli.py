@@ -5,7 +5,7 @@ uv run ecoelec generer              vérifie puis génère les decks dans decks/
 uv run ecoelec nouveau-module ID --titre "Titre"   crée un module en ébauche
 uv run ecoelec controler poly.log slides.log      contrôle les journaux et le rendu HTML
 uv run ecoelec pdf                  exporte en PDF les decks autonomes (decktape + Chrome)
-uv run ecoelec site                 racine du site publié : accueil et adresses des parcours
+uv run ecoelec site                 adresses courtes des parcours (accueil : npm run build)
 """
 
 import argparse
@@ -17,10 +17,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
-
 from outils import options_label
-from outils.catalog import load_modules
+from outils.catalog import book_chapters, load_modules
 from outils.controls import check_images, check_logs
 from outils.decks import OUTPUT, generate
 from outils.report import Report
@@ -47,13 +45,7 @@ def check(root: Path) -> tuple[Report, dict, list[Track]]:
 
 def _check_book(root: Path, modules: dict, report: Report) -> None:
     """Le poly est complet : chaque module y a son chapitre, chaque chapitre existe."""
-    config = yaml.safe_load((root / "_quarto-poly.yml").read_text(encoding="utf-8"))
-    chapters = []
-    for item in config.get("book", {}).get("chapters", []):
-        if isinstance(item, str):
-            chapters.append(item)
-        elif isinstance(item, dict):
-            chapters += item.get("chapters", [])
+    chapters = book_chapters(root)
     for chapter in chapters:
         if not (root / chapter).exists():
             report.error("_quarto-poly.yml", f"chapitre introuvable : {chapter}")
@@ -176,11 +168,16 @@ def cmd_pdf(args) -> int:
     if not decks:
         print(f"Aucun deck dans {args.dossier} : rendre d'abord les decks autonomes")
         return 1
+    # Sous Windows, npx est un script npx.cmd que subprocess ne trouve pas sans chemin
+    npx = shutil.which("npx")
+    if not npx:
+        print("npx introuvable : installer Node.js")
+        return 1
     env = {**os.environ, "PUPPETEER_SKIP_DOWNLOAD": "true"}
     for deck in decks:
         target = deck.with_suffix(".pdf")
         command = [
-            "npx", "--yes", "decktape@3", "reveal",
+            npx, "--yes", "decktape@3", "reveal",
             "--chrome-path", chrome, "--chrome-arg=--no-sandbox", "--size", "1280x720",
             deck.resolve().as_uri(), str(target),
         ]  # fmt: skip
@@ -224,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--chrome", help="chemin de Chrome ou Chromium")
     p.set_defaults(func=cmd_pdf)
 
-    p = sub.add_parser("site", help="écrire la racine du site publié (accueil, parcours)")
+    p = sub.add_parser("site", help="écrire les adresses courtes des parcours à la racine du site")
     p.add_argument("--rendu", default="_rendu", help="dossier du rendu (défaut : _rendu)")
     p.set_defaults(func=cmd_site)
 

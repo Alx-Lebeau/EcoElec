@@ -1,0 +1,28 @@
+/*-- scss:defaults --*/
+
+// Mode sombre du poly et des outils : listé après site.scss
+// (theme: dark: [cosmo, commun/site.scss, commun/site-sombre.scss, commun/charte.scss]).
+// Couches scss:defaults en ordre inverse : ces valeurs passent avant les `!default`
+// de site.scss.
+
+$primary: $sombre-lien;
+$body-bg: $sombre-fond;
+$body-color: $sombre-texte;
+$link-color: $sombre-lien;
+$headings-color: $sombre-texte;
+$border-color: $sombre-filet;
+$texte-discret: $sombre-texte-discret;
+$surface-2: $sombre-surface-2;
+
+$navbar-bg: $sombre-surface;
+$navbar-fg: $sombre-texte-discret;
+$navbar-hl: $sombre-texte;
+$sidebar-bg: $sombre-fond;
+$footer-bg: $sombre-surface;
+
+$code-block-bg: $sombre-surface;
+$code-bg: $sombre-surface-2;
+$code-color: $sombre-texte;
+$table-color: $sombre-texte;
+$input-bg: $sombre-surface;
+$input-color: $sombre-texte;

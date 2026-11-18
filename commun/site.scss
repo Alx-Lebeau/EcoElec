@@ -1,0 +1,83 @@
+/*-- scss:defaults --*/
+
+// Thème HTML du poly et des outils, mode clair (sur la base de Cosmo).
+// Mode sombre : site-sombre.scss, listé après ce fichier, qui redéfinit les couleurs.
+// D'où les `!default` ici : la valeur du mode sombre l'emporte.
+// Variables de la charte : charte.scss, listé en dernier.
+
+$font-family-sans-serif: $police !default;
+$font-family-monospace: $police-mono !default;
+
+$primary: $bleu !default;
+$body-bg: $clair-surface !default;
+$body-color: $clair-texte !default;
+$link-color: $bleu !default;
+$headings-color: $bleu !default;
+$border-color: $gris-filet !default;
+$texte-discret: $clair-texte-discret !default;
+$surface-2: $clair-surface-2 !default;
+
+// Barre de navigation et barre latérale du poly, comme l'en-tête de l'accueil
+$navbar-bg: $clair-surface !default;
+$navbar-fg: $clair-texte-discret !default;
+$navbar-hl: $clair-texte !default;
+$sidebar-bg: $clair-surface !default;
+$footer-bg: $clair-surface !default;
+
+/*-- scss:rules --*/
+
+h1,
+h2,
+h3,
+.title {
+  letter-spacing: -0.01em;
+}
+
+// En-tête : même habillage que celui de l'accueil (accueil/src/style.css)
+#quarto-header .navbar {
+  border-bottom: 1px solid $border-color;
+  box-shadow: none;
+}
+
+#quarto-header .navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#quarto-header .navbar-title {
+  color: $body-color;
+  font-weight: 650;
+}
+
+#quarto-header .navbar-logo {
+  width: 28px;
+  height: 28px;
+  max-height: none;
+}
+
+#quarto-header .navbar-nav .nav-link {
+  border-radius: 8px;
+  font-weight: 500;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#quarto-header .navbar-nav .nav-link:hover,
+#quarto-header .navbar-nav .nav-link.active {
+  background: $surface-2;
+}
+
+// Liens : soulignés au survol seulement, comme dans l'accueil
+a {
+  text-decoration: none;
+}
+
+main a:hover {
+  text-decoration: underline;
+}
+
+// Encadrés « Formalisation » (voir commun/filtres/formalisation.lua)
+.callout.formalisation {
+  border-left-color: $accent;
+}

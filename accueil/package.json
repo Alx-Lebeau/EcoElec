@@ -1,0 +1,21 @@
+{
+  "name": "ecoelec-accueil",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Accueil du site du cours : parcours, modules, poly et outils (lit decks/catalogue.json)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "sass": "^1.108.2",
+    "vite": "^7.1.0"
+  }
+}

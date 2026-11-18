@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Cours d'économie de l'électricité : parcours, slides, poly et outils de simulation." />
+    <title>Économie de l'électricité</title>
+    <link rel="icon" href="../commun/logo.svg" />
+    <script>
+      // Thème choisi sur une page du site, appliqué avant le premier rendu. Clé et
+      // valeurs de Quarto (poly, outils) : « alternate » = sombre, « default » = clair.
+      try {
+        const t = localStorage.getItem("quarto-color-scheme");
+        if (t) document.documentElement.dataset.theme = t === "alternate" ? "dark" : "light";
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Cette page demande JavaScript. Le poly est accessible directement : <a href="poly/index.html">poly/</a>.</noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -3,7 +3,7 @@
 # interactifs (OJS), contrôles.
 # Le rendu est disponible en artefact « rendu » de chaque exécution.
 # Sur main, le site est publié sur GitHub Pages (job « publier ») : _rendu/ en est la
-# racine (accueil, adresses courtes des parcours, poly, slides, outils). Prérequis :
+# racine (accueil React, adresses courtes des parcours, poly, slides, outils). Prérequis :
 # Settings > Pages > Source : « GitHub Actions » (dépôt public ou offre payante).
 
 name: Rendu
@@ -45,11 +45,13 @@ jobs:
           tinytex: true
 
       # Node : test des modèles JavaScript des outils contre pyelec (obligatoire en CI,
-      # voir tests/test_modele_js.py), et decktape pour les PDF des decks.
+      # voir tests/test_modele_js.py), decktape pour les PDF des decks, accueil React.
       - name: Installer Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: accueil/package-lock.json
 
       - name: Tests de l'outillage et des modèles des outils
         run: uv run pytest
@@ -89,8 +91,15 @@ jobs:
       - name: Decks des parcours en PDF
         run: uv run ecoelec pdf
 
-      - name: Racine du site (accueil, adresses courtes des parcours)
+      - name: Adresses courtes des parcours
         run: uv run ecoelec site
+
+      # Accueil React (accueil/) : lit decks/catalogue.json, écrit _rendu/index.html
+      # et _rendu/accueil/ sans toucher aux rendus Quarto.
+      - name: Accueil du site
+        run: |
+          npm ci --prefix accueil
+          npm run build --prefix accueil
 
       - name: Contrôles (renvois masqués, références et images manquantes)
         run: uv run ecoelec controler poly.log slides.log outils.log autonome.log autonome-exemple.log
