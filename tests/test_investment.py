@@ -63,3 +63,11 @@ def test_captured_price_is_weighted_by_production():
     assert mean == pytest.approx(table["prix"].mean())
     peak_only = table.loc[table["pointe"] > 0, "prix"]
     assert captured["pointe"] == pytest.approx(peak_only.mean())
+
+
+def test_rents_cover_fixed_costs():
+    """Parc optimal, prix marginal horaire : la rente de chaque filière égale son coût fixe."""
+    options = investment.with_load_shedding(investment.load_options(), hours=3)
+    prices = investment.hourly_prices(options, investment.load_curve())
+    rents = investment.inframarginal_rents(options, prices)
+    assert np.allclose(rents["rente"], rents["cout_fixe"], rtol=0.01)

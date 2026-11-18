@@ -736,6 +736,195 @@ même filière ne tournent pas toutes autant : celles du bas de la tranche plus 
 celles du haut.
 :::
 
+## Le prix horaire du parc optimal {partie="Couverture des coûts"}
+
+```{python}
+prix = investment.hourly_prices(avec_delestage, courbe)
+rentes = investment.inframarginal_rents(avec_delestage, prix)
+heures_delestage = int((prix.attrs["marginale"] == "delestage").sum())
+```
+
+:::: {.columns}
+::: {.column width="55%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.2))
+investment.price_duration(ax, prix, avec_delestage)
+style.add_source(fig, f"{source_options} ; {source_courbe}", str(annee_prix))
+plt.show()
+```
+:::
+::: {.column width="45%"}
+Le parc construit, on le fait fonctionner au moindre coût, heure par heure. Le prix
+de chaque heure est le coût variable du moyen marginal (merit order), la **VOLL**
+aux heures de délestage.
+
+Classés, les prix reprennent les durées d'équilibre.
+
+**Chaque centrale couvre-t-elle ses coûts fixes ?**
+:::
+::::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+Retour au court terme, avec le parc optimal : à chaque heure, le prix est la valeur
+d'un MWh de plus pour le système. Quand toute la capacité est utilisée et qu'on
+déleste, ce MWh de plus éviterait une coupure : il vaut la VOLL.
+
+Lecture : prix à la VOLL pendant `{python} heures_delestage` h, au coût variable de la
+TAC jusqu'à `{python} number(tac_ccg)` h, du CCG jusqu'à
+`{python} number(ccg_nucleaire)` h, du nucléaire au-delà. Les prix sont calculés heure
+par heure avec la courbe de charge de `{python} courbe.index[0].year`, puis classés.
+:::
+
+## Chaque filière couvre exactement ses coûts fixes
+
+```{python}
+def k(filiere, colonne="rente", chiffres=0):
+    """Rente ou coût fixe en k€/MW/an, mis en forme."""
+    return number(rentes.loc[filiere, colonne] / 1000, chiffres)
+```
+
+::: {.figure-large}
+```{python}
+fig = plt.figure(figsize=(10, 3.0))
+investment.rent_of(fig, prix, avec_delestage, rentes, "ccg")
+style.add_source(fig, f"{source_options} ; {source_courbe}", str(annee_prix))
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+**Rente inframarginale** d'un MW : l'aire entre la monotone des prix et son coût
+variable. Pour le CCG, elle égale son coût fixe. De même pour la TAC (`{python} k("tac")` k€/MW/an
+pour `{python} k("tac", "cout_fixe")`) et le nucléaire (`{python} k("nucleaire")` pour
+`{python} k("nucleaire", "cout_fixe")`). **Profit nul.**
+[$\quad \sum_t (p_t - \CV_i)^+ = \CF_i$]{.formel}
+:::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+Lecture : à gauche, la monotone des prix. Un MW de CCG produit dès que le prix
+dépasse son coût variable (tirets) et gagne l'écart : l'aire colorée, plus les
+heures de délestage, hors d'échelle. À droite, la même rente en barre, face au coût
+fixe annuel. Écarts de moins de 1 % pour les autres filières : arrondis du pas horaire.
+
+Le nucléaire gagne à toutes les heures où une autre filière est marginale : sa rente
+vient surtout des heures de CCG, `{python} k("nucleaire", "ccg")` k€/MW/an.
+
+Les `{python} heures_delestage` heures de délestage rapportent à elles seules
+`{python} number(rentes.loc["tac", "delestage"] / 1000)` k€/MW/an à chaque filière :
+tout le coût fixe de la TAC, plus de la moitié de celui du CCG. La rentabilité de la
+pointe repose sur quelques heures à prix très élevé. Si le prix est plafonné sous la
+VOLL, la pointe ne couvre plus ses coûts : c'est le *missing money*, point de départ
+du module capacité.
+
+Version formelle : $(x)^+ = \max(x, 0)$.
+:::
+
+## Deux lectures du même calcul
+
+:::: {.columns}
+::: {.column width="50%"}
+**Pour la collectivité**
+
+Un MW de plus remplace, aux heures où il n'est pas marginal, un moyen plus cher ou du
+délestage. On investit tant que ce gain dépasse le coût fixe.
+
+**À l'optimum, gain = coût fixe.**
+:::
+::: {.column width="50%"}
+**Pour un investisseur**
+
+Vendu au prix de chaque heure, le même MW touche la même somme : sa rente
+inframarginale. Profit = rente − coût fixe.
+
+**À l'optimum, profit nul.**
+:::
+::::
+
+Même calcul, deux lectures : la condition d'optimalité du parc est la couverture
+exacte des coûts fixes par les rentes.
+
+::: {.formel}
+Multiplicateurs : $\lambda_t$ de l'équilibre de l'heure $t$ (le prix), $\mu_{i,t} \ge 0$
+de la capacité. Conditions d'optimalité :
+$\mu_{i,t} = (\lambda_t - \CV_i)^+$ (dérivée en $p_{i,t}$) et
+$\CF_i = \sum_t \mu_{i,t}$ (dérivée en $\Pmax_i$), donc
+$\CF_i = \sum_t (\lambda_t - \CV_i)^+$.
+:::
+
+::: {.notes}
+Le raisonnement du planificateur, MW par MW : ajouter 1 MW de CCG fait économiser,
+à chaque heure où la TAC est marginale, l'écart de coût variable entre TAC et CCG,
+et aux heures de délestage, la VOLL moins le coût variable du CCG. Si la somme dépasse
+le coût fixe du CCG, il faut en construire plus. Si elle est inférieure, moins. Au
+parc optimal, égalité.
+
+Vérification directe avec les durées d'équilibre, pour le CCG : sa rente vaut
+(VOLL − CV CCG) × h₁ + (CV TAC − CV CCG) × (h₂ − h₁), avec h₁ et h₂ les durées
+d'équilibre délestage-TAC et TAC-CCG. Or CF TAC = (VOLL − CV TAC) × h₁ et
+CF CCG − CF TAC = (CV TAC − CV CCG) × h₂. La somme donne CF CCG. Même calcul,
+en cascade, pour le nucléaire.
+
+Résultat classique de la tarification au coût marginal (Boiteux, 1949, pour la
+pointe, Caramanis et al., 1982, pour les prix horaires).
+:::
+
+## L'investissement dans un marché parfait, en théorie
+
+:::: {.columns}
+::: {.column width="50%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 3.8))
+investment.investment_loop(ax)
+plt.show()
+```
+:::
+::: {.column width="50%"}
+La mécanique théorique : un investisseur construit tant que son profit attendu est
+positif.
+
+- **Profit > 0** : de nouvelles centrales entrent, la rareté recule, les prix baissent.
+- **Profit < 0** : des centrales ferment, les prix remontent.
+
+Dans un marché parfait, ce mouvement s'arrête à profit nul, au parc optimal.
+:::
+::::
+
+::: {.attention}
+Marché parfait : concurrence, prix libres jusqu'à la VOLL, anticipations justes,
+investissements divisibles. Aucune ne tient pleinement en pratique.
+:::
+
+::: {.notes}
+L'interprétation « marché » de la couverture des coûts, comme référence théorique :
+si toutes les hypothèses tenaient, des investisseurs qui comparent rentes attendues et
+coûts fixes reconstitueraient le parc optimal sans que personne ne le calcule, comme le
+merit order reconstitue l'optimum de court terme. C'est un point de comparaison, pas
+une description des marchés réels.
+
+Chaque hypothèse se discute, et chacune ouvre un module :
+
+- prix plafonnés sous la VOLL : la pointe ne couvre plus ses coûts (module capacité)
+- rentes concentrées sur quelques heures incertaines : risque élevé, financement plus
+  cher, sous-investissement possible
+- pouvoir de marché : retenir de la capacité fait monter les prix
+- investissements par blocs, délais de construction : le parc s'ajuste lentement,
+  par cycles
+:::
+
 ## À retenir {partie="Synthèse"}
 
 ::: {.a-retenir}
@@ -751,6 +940,9 @@ celles du haut.
    délestage compris.
 5. **Monotone de charge** : en croisant les durées d'équilibre avec la monotone, on
    obtient les capacités optimales de base, de semi-base et de pointe.
+6. **Couverture des coûts** : au prix marginal, VOLL comprise, la rente de chaque
+   filière du parc optimal couvre exactement son coût fixe. En théorie, dans un marché
+   parfait, les investisseurs entrent jusqu'à profit nul, au parc optimal.
 :::
 
 ::: {.notes}
