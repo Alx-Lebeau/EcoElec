@@ -11,10 +11,11 @@ project:
     - decks/**/*.qmd
 
 website:
-  title: "Économie de l'électricité — slides"
+  title: "Économie de l'électricité"
+  # Page d'accueil du site publié (racine : _rendu/, voir `ecoelec site`).
   navbar:
     left:
-      - text: Slides
+      - text: Accueil
         href: decks/index.qmd
       - text: Poly
         href: ../poly/index.html

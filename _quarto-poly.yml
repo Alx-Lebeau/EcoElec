@@ -12,12 +12,18 @@ book:
   date: last-modified
   date-format: long
   output-file: economie-electricite
+  sidebar:
+    tools:
+      - icon: house-door
+        text: Accueil du cours
+        href: ../slides/decks/index.html
   chapters:
     - index.qmd
     - modules/systeme/poly.qmd
     - modules/cadre/poly.qmd
     - modules/court-terme/poly.qmd
     - modules/long-terme/poly.qmd
+    - modules/cas-enr-investissement/poly.qmd
     - modules/architecture-marches/poly.qmd
     - modules/capacite/poly.qmd
     - modules/reseaux/poly.qmd

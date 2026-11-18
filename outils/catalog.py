@@ -41,6 +41,11 @@ class Module:
         return self.id.startswith("_")
 
     @property
+    def has_tool(self) -> bool:
+        """Outil interactif (page OJS `outil.qmd`, rendue par le profil `outils`)."""
+        return (self.path / "outil.qmd").exists()
+
+    @property
     def slug(self) -> str:
         """Nom des fichiers générés : Quarto ignore les chemins commençant par « _ »."""
         return self.id.lstrip("_")

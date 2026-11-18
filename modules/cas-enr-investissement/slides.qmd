@@ -1,0 +1,601 @@
+## Rappel : le parc optimal {.rappel module="long-terme"}
+
+- ***Screening curves*** : coût total d'un MW selon ses heures de fonctionnement. La
+  filière la moins chère dépend du nombre d'heures.
+- **Monotone de charge** : en croisant les durées d'équilibre avec la monotone, on
+  obtient les capacités optimales de chaque filière.
+- **Délestage** : moyen fictif au coût variable égal à la VOLL, retenu pour les
+  quelques heures où construire une centrale coûterait plus que couper.
+
+## La question du cas {partie="Le cas"}
+
+```{python}
+import matplotlib.pyplot as plt
+
+from pyelec import case_study, label, style
+from pyelec.dispatch import number
+
+style.use()
+cas = case_study.load_case()
+annee = cas.attrs["annee"]
+options = case_study.thermal_options()
+solaire = case_study.solar_option()
+fc_solaire = cas.solar_cf.mean()
+capacite_solaire = case_study.solar_capacity()
+niveaux = case_study.solar_levels()
+reference = case_study.optimal_fleet(cas)
+illustration = case_study.optimal_fleet(cas, niveaux[0])
+horaire = case_study.dispatch(cas, reference)
+horaire_solaire = case_study.dispatch(cas, illustration)
+source_couts = "ENTSO-E, ERAA 2024 (gaz) ; hypothèse type EPR2 (nucléaire) ; CRE (prix, solaire)"
+source_eco2mix = "RTE, éCO2mix"
+
+
+def kilo(x):
+    """Coût fixe annuel en k€/MW/an, mis en forme."""
+    return number(x / 1000)
+```
+
+**Que change l'arrivée du solaire dans un système électrique ?**
+
+:::: {.columns}
+::: {.column width="50%"}
+**Trois leviers étudiés**
+
+- un **prix du CO₂**, qui renchérit les centrales au gaz
+- du **solaire hors marché**, installé grâce à une subvention
+- du **solaire sans subvention**, quand il devient compétitif
+:::
+::: {.column width="50%"}
+**Trois effets à mesurer**
+
+- sur le **parc** : combien de MW de chaque filière
+- sur les **prix** de gros
+- sur les **revenus** des producteurs : couvrent-ils leurs coûts ?
+:::
+::::
+
+::: {.notes}
+Étude de cas d'environ trois heures : présentation du cas et de l'outil, puis
+travail en autonomie ou en binôme sur l'outil de simulation, question par question.
+
+Le cas prolonge directement le module long terme : mêmes filières, mêmes coûts,
+même courbe de charge, avec le solaire en plus.
+:::
+
+## Un système stylisé
+
+:::: {.columns}
+::: {.column width="50%"}
+**Ce que contient le modèle**
+
+- la consommation de la France, heure par heure, sur une année
+- trois filières pilotables : nucléaire, CCG, TAC
+- le solaire, avec sa production réelle heure par heure
+- le délestage, au coût de la VOLL
+:::
+::: {.column width="50%"}
+**Ce qu'il laisse de côté**
+
+- l'éolien, l'hydraulique, le stockage
+- les échanges avec les pays voisins
+- le parc existant : tout est à construire
+- les contraintes techniques et l'incertitude
+:::
+::::
+
+::: {.attention}
+Un modèle pédagogique : il montre des mécanismes, il ne prévoit pas le parc français.
+:::
+
+::: {.sigles}
+- CCG : cycle combiné au gaz
+- TAC : turbine à combustion
+- VOLL : valeur de l'énergie non distribuée
+:::
+
+::: {.notes}
+Toutes les simplifications du module long terme restent : une seule zone sans
+réseau, une année représentative connue à l'avance, des centrales construites MW
+par MW, sans minimum technique ni rampe. Le parc part de zéro : c'est le parc qu'on
+construirait aujourd'hui avec les coûts actuels, pas une trajectoire depuis le parc
+existant.
+
+Les ordres de grandeur ont un sens, les chiffres précis non. Les conclusions
+utiles portent sur les sens de variation et sur les mécanismes.
+:::
+
+## Quatre filières et le délestage {partie="Les données"}
+
+```{python}
+#| output: asis
+lignes = [
+    "| Filière | Investissement (€/kW) | Exploitation (€/kW/an) | Durée de vie (ans) "
+    "| Coût fixe (k€/MW/an) | Coût variable (€/MWh) |",
+    "|:--|--:|--:|--:|--:|--:|",
+]
+for f in ["nucleaire", "ccg", "tac"]:
+    r = options.loc[f]
+    lignes.append(
+        f"| {label(f)} | {number(r.investissement)} | {number(r.exploitation_fixe)} "
+        f"| {number(r.duree_vie)} | {kilo(r.cout_fixe)} | {number(r.cout_variable)} |"
+    )
+lignes.append(
+    f"| {label('solaire')} | {number(solaire.investissement)} "
+    f"| {number(solaire.exploitation_fixe, 1)} | {number(solaire.duree_vie)} "
+    f"| {kilo(solaire.cout_fixe)} | {number(solaire.cout_variable)} |"
+)
+lignes.append(f"| {label('delestage')} | | | | 0 | {number(cas.voll)} |")
+print("\n".join(lignes))
+```
+
+:::: {.columns}
+::: {.column width="50%"}
+**Coût fixe** : annuité de l'investissement (taux de
+`{python} number(options["taux_actualisation"].iloc[0] * 100)` %) et coûts fixes
+d'exploitation.
+:::
+::: {.column width="50%"}
+**Coût variable** des CCG et des TAC : prix du gaz et du CO₂ de `{python} annee`
+(`{python} number(cas.attrs["prix_co2"], 1)` €/t).
+:::
+::::
+
+::: {.notes}
+Filières thermiques et délestage : exactement les hypothèses du module long terme.
+La VOLL est stylisée comme dans ce module : délestage et TAC coûtent autant pour trois
+heures par an, le critère de défaillance français.
+
+Solaire au sol : coûts des projets retenus aux appels d'offres de la CRE jusqu'en juin
+2025 (investissement proche de 900 €/kWc, exploitation de 20 à 25 €/kWc/an). Même taux
+d'actualisation que les autres filières. Durée de vie de 30 ans retenue pour le cours.
+
+Coût variable nul pour le solaire : pas de combustible. Il produit donc dès qu'il le
+peut, en premier dans le merit order.
+:::
+
+## Le solaire : une production variable
+
+```{python}
+#| classes: figure-large
+fig = plt.figure(figsize=(11, 3.3))
+case_study.solar_profile(fig, cas.solar_cf)
+style.add_source(fig, f"{source_eco2mix} (production solaire) ; parc RTE", str(annee))
+plt.show()
+```
+
+**Facteur de charge** moyen : `{python} number(fc_solaire * 100, 1)` %, soit
+`{python} number(fc_solaire * 8760)` heures à pleine puissance par an. Rien la nuit,
+peu l'hiver.
+
+::: {.notes}
+Facteur de charge horaire : production solaire de la France heure par heure, divisée
+par la capacité installée moyenne de l'année (`{python} number(capacite_solaire.iloc[0], 1)` GW
+fin `{python} annee - 1`, `{python} number(capacite_solaire.iloc[1], 1)` GW fin
+`{python} annee`).
+
+Le modèle suppose que toute nouvelle capacité produit comme le parc actuel : même
+répartition géographique, même météo. Doubler la capacité double la production à
+chaque heure.
+
+Question 5 : on compare avec un solaire hypothétique qui produirait la même énergie
+annuelle, mais de façon constante, jour et nuit, été comme hiver.
+:::
+
+## La consommation résiduelle
+
+:::: {.columns}
+::: {.column width="58%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.4, 4.3))
+case_study.residual_duration(ax, cas, niveaux)
+style.add_source(fig, f"{source_eco2mix} (consommation, solaire)", str(annee))
+plt.show()
+```
+:::
+::: {.column width="42%"}
+**Consommation résiduelle** : consommation moins production solaire. C'est ce qui
+reste à servir par les filières pilotables.
+
+Le solaire réduit surtout les heures de consommation moyenne ou faible, peu la pointe
+d'hiver.
+
+Quand la résiduelle devient négative, une partie du solaire est perdue : c'est
+l'**écrêtement**.
+:::
+::::
+
+::: {.notes}
+Monotones classées séparément : la consommation résiduelle n'est pas la consommation
+décalée vers le bas, sa forme change.
+
+La pointe d'hiver a lieu en soirée, sans soleil : elle baisse à peine, même avec
+`{python} number(niveaux[2])` GW de solaire. Le besoin en capacité pilotable reste
+donc presque le même, alors que le besoin en énergie baisse. C'est la clé des
+questions 4 et 5.
+
+Écrêtement : le modèle n'a ni stockage ni exportation pour absorber les surplus.
+:::
+
+## Le fonctionnement heure par heure
+
+:::: {.columns}
+::: {.column width="58%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.4, 4.3))
+case_study.dispatch_week(ax, horaire_solaire, f"{annee}-07-07")
+ax.legend(frameon=False, fontsize=8, ncol=4, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+style.add_source(fig, f"Calcul du cours ; {source_eco2mix}", str(annee))
+plt.show()
+```
+:::
+::: {.column width="42%"}
+À chaque heure, le **merit order** :
+
+1. le solaire disponible
+2. puis les filières pilotables, par coût variable croissant
+3. puis le délestage
+
+**Prix** : coût variable de la dernière filière appelée.
+:::
+::::
+
+::: {.notes}
+Semaine d'été, avec `{python} number(niveaux[0])` GW de solaire (à peu près le parc
+de fin `{python} annee`) et le parc pilotable adapté à ce solaire.
+
+Même règle de prix que dans le module court terme : chaque filière offre son coût
+variable. Prix nul quand le solaire est écrêté, prix égal à la VOLL quand il y a
+délestage.
+
+Le nucléaire module sa production pendant les heures solaires : le modèle l'autorise
+sans contrainte, ce qui est optimiste (minimum technique, rampes).
+:::
+
+## L'outil de simulation {partie="L'outil"}
+
+:::: {.columns}
+::: {.column width="50%"}
+**Entrées**
+
+- capacités des quatre filières (GW)
+- coûts fixes et coût variable de chaque filière
+- prix du CO₂
+- profil du solaire : réel ou constant
+- bouton **« Parc optimal »** : calcule le parc qui minimise le coût total
+:::
+::: {.column width="50%"}
+**Sorties**
+
+- production, écrêtement, délestage
+- coût total du système
+- prix moyen, valeur de marché du solaire
+- rente inframarginale et profit de chaque filière
+- graphiques : *screening curves*, monotones, semaines types
+:::
+::::
+
+::: {.attention}
+Figer un résultat comme **référence** avant de changer une hypothèse : l'outil affiche
+alors les écarts.
+:::
+
+[Ouvrir l'outil en ligne]({{< meta site-cours >}}/outils/modules/cas-enr-investissement/outil.html),
+sans installation, dans le navigateur.
+
+::: {.notes}
+Outil en ligne, aussi accessible depuis la page du parcours et l'accueil du site du
+cours. Deux onglets : la méthode graphique (*screening curves* et monotone), puis le
+modèle complet.
+
+Deux usages du bouton « Parc optimal » : avec la capacité solaire imposée (solaire
+hors marché, question 4) ou choisie par le calcul comme les autres filières (solaire
+sans subvention, question 5).
+
+Comparer à une référence est le cœur de chaque question : effet d'un changement à
+parc donné (court terme), puis avec un parc adapté (long terme).
+:::
+
+## Ce que mesure l'outil {partie="Définitions"}
+
+:::: {.columns}
+::: {.column width="50%"}
+- **Coût total** : coûts fixes, coûts variables et coût du délestage, sur l'année.
+  Le parc optimal le rend minimal.
+- **Écrêtement** : production solaire disponible mais non utilisée.
+- **Délestage** : consommation non servie, valorisée à la VOLL.
+:::
+::: {.column width="50%"}
+- **Prix moyen** : moyenne des prix horaires.
+- **Valeur de marché du solaire** : prix moyen pondéré par sa production.
+- **Subvention** : ce qui manque au solaire pour couvrir ses coûts, sur l'année.
+:::
+::::
+
+::: {.formel}
+$$
+\text{Coût total} = \textstyle\sum_i \CF_i \times \Pmax_i
+  + \sum_t \sum_i \CV_i \times p_{i,t} + \sum_t \VOLL \times \END_t
+$$
+:::
+
+::: {.notes}
+Coût total minimal et surplus social maximal reviennent au même : la consommation
+est fixée, valorisée à la VOLL, donc le surplus vaut la valeur de la consommation
+servie moins le coût total.
+
+La valeur de marché du solaire est ce que touche un MWh solaire vendu sur le marché.
+Elle se compare au prix moyen et au LCOE du solaire.
+:::
+
+## Le profit : le signal de l'investissement
+
+:::: {.columns}
+::: {.column width="56%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.2))
+case_study.price_duration(ax, cas, horaire, "nucleaire")
+style.add_source(fig, f"Calcul du cours ; {source_eco2mix}", str(annee))
+plt.show()
+```
+:::
+::: {.column width="44%"}
+- **Rente inframarginale** d'un MW : prix moins coût variable, sur ses heures de
+  production.
+- **Profit** = rente inframarginale − coût fixe.
+
+Profit positif : on **investit**. Profit négatif : on **ferme**.
+
+**Au parc optimal, tous les profits sont nuls.**
+
+::: {.formel}
+$$
+\text{Profit}_i = \tfrac{1}{\Pmax_i} \textstyle\sum_t (\text{prix}_t - \CV_i)\, p_{i,t}
+  - \CF_i
+$$
+:::
+:::
+::::
+
+::: {.notes}
+Figure : monotone de prix du parc optimal, sans solaire, écrêtée en haut. Les
+`{python} number((horaire["prix"] >= cas.voll).sum())` heures au prix de la VOLL y
+sont hors d'échelle, alors qu'elles comptent beaucoup dans la rente inframarginale de
+toutes les filières.
+
+Profit nul ne veut pas dire investissement sans rémunération : le coût fixe comprend
+l'annuité, donc la rémunération du capital au taux d'actualisation. Le profit de long
+terme mesure ce qui reste au-delà de cette rémunération normale.
+
+C'est le résultat central du module long terme : un marché où chacun offre son coût
+variable retrouve le parc optimal, à condition que le prix monte jusqu'à la VOLL
+pendant les heures de délestage.
+:::
+
+## Le CO₂ déplace les durées d'équilibre {partie="Les mécanismes"}
+
+:::: {.columns}
+::: {.column width="56%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.3))
+case_study.co2_screening(ax, cas, case_study.CO2_PRICES[1])
+style.add_source(fig, source_couts, str(annee))
+plt.show()
+```
+:::
+::: {.column width="44%"}
+Le CO₂ renchérit le coût variable des CCG et des TAC, pas celui du nucléaire : leurs
+droites se redressent.
+
+Le nucléaire devient le moins cher **dès moins d'heures** par an : il en faut plus
+dans le parc optimal.
+
+À parc donné, les prix montent : le profit du nucléaire devient **positif**, signal
+pour investir.
+:::
+::::
+
+::: {.notes}
+Première intuition pour la question 3, sans les chiffres : le public les retrouve
+avec l'outil.
+
+Lecture : le point de croisement entre CCG et nucléaire glisse vers la gauche. Sur la
+monotone, une durée d'équilibre plus courte correspond à une puissance plus haute :
+la tranche de base s'épaissit.
+
+Court terme : le merit order ne change pas tant que le CCG reste plus cher que le
+nucléaire, donc la production non plus. Seuls les prix et les profits bougent.
+:::
+
+## Le solaire réduit la base à construire
+
+:::: {.columns}
+::: {.column width="56%"}
+```{python}
+#| classes: figure-colonne
+fig, ax = plt.subplots(figsize=(6.2, 4.3))
+case_study.residual_reading(ax, cas, niveaux[1])
+style.add_source(fig, f"Calcul du cours ; {source_eco2mix}", str(annee))
+plt.show()
+```
+:::
+::: {.column width="44%"}
+Le parc pilotable se lit sur la **monotone résiduelle**, avec les mêmes durées
+d'équilibre.
+
+Le solaire abaisse surtout les heures de consommation moyenne : **moins de
+nucléaire**.
+
+La pointe d'hiver, le soir, ne bouge presque pas : il faut toujours **presque autant de
+capacité pilotable**, qui tourne moins.
+:::
+::::
+
+::: {.notes}
+Intuition pour les questions 4 et 5. Lecture : à la durée d'équilibre entre CCG et
+nucléaire, la monotone résiduelle passe plus bas que la monotone de consommation.
+L'écart donne la baisse de la capacité nucléaire optimale.
+
+Les CCG et les TAC prennent le relais de la base pendant les heures sans soleil : ils
+reculent peu, voire augmentent. Le solaire remplace de l'énergie, très peu de
+puissance garantie.
+:::
+
+## Le solaire fait baisser sa propre valeur
+
+:::: {.columns}
+::: {.column width="56%"}
+```{python}
+#| classes: figure-colonne
+fig = plt.figure(figsize=(6.2, 4.3))
+case_study.solar_day_prices(fig, cas, reference, (0.0, niveaux[0], niveaux[1]), f"{annee}-04-16")
+style.add_source(fig, f"Calcul du cours ; {source_eco2mix}", str(annee))
+plt.show()
+```
+:::
+::: {.column width="44%"}
+Tout le solaire produit **aux mêmes heures**. Il y remplace la filière la plus chère
+appelée, et fait baisser le prix précisément quand il vend.
+
+Plus il y a de solaire, plus sa **valeur de marché** baisse.
+
+Quand elle passe sous son coût complet, le solaire ne couvre plus ses coûts : il faut
+une **subvention** pour l'installer.
+:::
+::::
+
+::: {.notes}
+Journée de printemps (`{python} annee`-04-16), parc pilotable de référence, sans
+adaptation : c'est l'effet de court terme. Les prix horaires du modèle sont des
+paliers, égaux au coût variable de la filière marginale.
+
+Effet appelé « cannibalisation » : chaque MW solaire ajouté réduit le revenu de tous
+les MW déjà installés. L'éolien connaît le même effet, moins marqué, car sa
+production est moins concentrée dans le temps.
+
+Avec beaucoup de solaire, le prix tombe à zéro aux heures d'écrêtement.
+:::
+
+## Q1. Le parc de référence {partie="Consignes"}
+
+Sans solaire, avec les coûts de `{python} annee`.
+
+1. Sur les *screening curves*, lire les **durées d'équilibre** entre filières. Les
+   reporter sur la monotone de charge pour estimer le **parc optimal**.
+2. Lancer **« Parc optimal »** et comparer avec l'estimation.
+3. Relever le coût total, le délestage, le prix moyen, les profits. Pourquoi les profits
+   sont-ils nuls ?
+4. **Figer ce résultat comme référence.**
+
+::: {.notes}
+Prise en main de l'outil. Question 1 : reprise directe du module long terme, avec les
+mêmes données. Elle doit aller vite.
+
+Le résultat figé sert de point de comparaison aux questions 2 à 4.
+:::
+
+## Q2. Un parc mal dimensionné
+
+Partir du parc de référence.
+
+1. Retirer `{python} number(case_study.NUCLEAR_CUT * 100)` % de la capacité nucléaire.
+2. Comparer avec la référence : délestage, production de chaque filière, prix moyen,
+   coût total, profits.
+3. Quel signal reçoivent les investisseurs ? Que se passerait-il avec trop de
+   nucléaire ?
+
+::: {.notes}
+Objectif : relier le profit au déséquilibre du parc. Moins de capacité, plus d'heures
+à des prix élevés (CCG, TAC, VOLL) : les profits deviennent positifs pour toutes les
+filières, et le coût total augmente.
+:::
+
+## Q3. Le prix du CO₂
+
+Partir du parc de référence (CO₂ à `{python} number(cas.attrs["prix_co2"], 1)` €/t).
+
+1. **Court terme** : passer le prix du CO₂ à
+   `{python} number(case_study.CO2_PRICES[0])` €/t, sans changer le parc. Comparer
+   avec la référence : prix, production, profits.
+2. **Long terme** : relancer « Parc optimal ». Comparer les capacités.
+3. Reprendre les deux étapes avec `{python} number(case_study.CO2_PRICES[1])` €/t.
+4. Retrouver le résultat sur les *screening curves*.
+
+::: {.notes}
+Le CO₂ renchérit le coût variable des CCG et des TAC, pas celui du nucléaire. Court
+terme : prix et profits bougent, production inchangée tant que l'ordre du merit order
+ne change pas. Long terme : le parc s'adapte, ses capacités changent nettement.
+
+Faire lire le déplacement des durées d'équilibre sur les *screening curves*.
+:::
+
+## Q4. Du solaire hors marché
+
+Partir du parc de référence. Solaire de `{python} number(niveaux[0])`,
+`{python} number(niveaux[1])`, puis `{python} number(niveaux[2])` GW.
+
+1. **Court terme** : ajouter le solaire sans changer le reste du parc. Comparer :
+   production, écrêtement, prix moyen, profits.
+2. **Long terme** : relancer « Parc optimal » avec la capacité solaire imposée.
+   Quelles filières reculent ?
+3. **Subvention** : à partir du profit du solaire, estimer la subvention annuelle
+   (M€ et €/MWh consommé). Comparer la valeur de marché du solaire au prix moyen.
+
+::: {.notes}
+`{python} number(niveaux[0])` GW : à peu près le parc solaire installé en France fin
+`{python} annee`. Solaire hors marché : sa capacité est décidée par une politique
+publique, pas par la rentabilité.
+
+Points attendus : à court terme, le solaire fait baisser les prix et rend négatives
+les profits de toutes les filières (surcapacité). À long terme, le parc pilotable
+s'adapte et les prix remontent. La valeur de marché du solaire baisse quand sa
+capacité augmente : il produit tous en même temps.
+
+Unités : le profit est en k€/MW/an, la capacité en GW, la subvention en M€/an.
+:::
+
+## Q5. Du solaire sans subvention
+
+Le solaire devient une option d'investissement comme les autres : « Parc optimal »
+choisit aussi sa capacité.
+
+1. Avec le **profil réel** et les coûts de `{python} annee` : combien de solaire dans
+   le parc optimal ?
+2. Même question avec un **profil constant** hypothétique. Pourquoi un tel écart ?
+3. Profil réel : baisser le coût fixe du solaire de
+   `{python} number(case_study.SOLAR_COST_CUT * 100)` %. Puis, coûts de
+   `{python} annee`, prix du CO₂ à `{python} number(case_study.CO2_PRICES[1])` €/t.
+   Le résultat surprend-il ?
+4. Comparer les LCOE du solaire et du nucléaire. Que conclure sur le LCOE ?
+
+::: {.notes}
+Profil constant : même énergie annuelle, produite à toute heure. Il sert à isoler
+l'effet du profil, la seule différence avec le cas réel.
+
+Le prix du CO₂ ne profite pas forcément au solaire : il favorise aussi le nucléaire,
+qui lui dispute les heures de journée.
+
+Le LCOE compare des MWh produits à des moments différents comme s'ils avaient la même
+valeur : limite déjà vue dans le module long terme, ici chiffrée.
+:::
+
+## À retenir {partie="Synthèse"}
+
+::: {.a-retenir}
+1. **Court terme et long terme** : distinguer l'effet d'un changement à parc donné
+   de son effet une fois le parc adapté.
+2. **Profit** : rente inframarginale moins coût fixe, signal d'investissement.
+   Positif, il manque des capacités. Négatif, il y en a trop. Nul au parc optimal.
+3. **Consommation résiduelle** : le solaire change la forme de ce qui reste à servir,
+   donc le parc pilotable optimal.
+4. **Valeur d'un MWh** : elle dépend du moment où il est produit. Le profil de
+   production compte autant que le coût.
+:::
+
+::: {.notes}
+Synthèse de méthode, à reprendre au débriefing avec les résultats chiffrés.
+:::

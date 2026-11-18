@@ -160,3 +160,29 @@ def test_fingerprint_follows_included_files(project: Path):
     write(project / "modules/suite/slides.qmd", "## Rappel {.rappel}\n\nModifié.\n")
     generate(project, modules, tracks)
     assert deck.read_text(encoding="utf-8") != before
+
+
+def test_tools_in_track_and_home_pages(project: Path):
+    write(project / "modules/suite/outil.qmd", "---\ntitle: Outil\n---\n")
+    _, modules, tracks = check(project)
+    assert modules["suite"].has_tool and not modules["base"].has_tool
+    generate(project, modules, tracks)
+    out = project / OUTPUT
+    track = (out / "parcours/court/index.qmd").read_text(encoding="utf-8")
+    assert "Outils interactifs :" in track
+    assert "](../../../../outils/modules/suite/outil.html)" in track
+    home = (out / "index.qmd").read_text(encoding="utf-8")
+    assert "](../../outils/modules/suite/outil.html)" in home
+    assert "](parcours/court/index.html)" in home
+
+
+def test_site_root(project: Path):
+    from outils.site import write_site
+
+    _, _, tracks = check(project)
+    rendu = project / "_rendu"
+    write_site(rendu, tracks)
+    assert 'url=slides/decks/index.html"' in (rendu / "index.html").read_text(encoding="utf-8")
+    short = (rendu / "parcours/court/index.html").read_text(encoding="utf-8")
+    assert 'url=../../slides/decks/parcours/court/index.html"' in short
+    assert (rendu / ".nojekyll").exists()

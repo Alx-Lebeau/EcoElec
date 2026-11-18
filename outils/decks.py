@@ -4,8 +4,8 @@
     decks/modules/<module>/integral.qmd                    la base et toutes les options
     decks/modules/<module>/auteur.qmd                      vue auteur : tout, marques visibles
     decks/parcours/<parcours>/seance-NN.qmd                un deck par séance
-    decks/parcours/<parcours>/index.qmd                    séances, durées, chapitres du poly à lire
-    decks/index.qmd                                        page d'accueil des slides
+    decks/parcours/<parcours>/index.qmd                    séances, durées, chapitres, outils
+    decks/index.qmd                                        page d'accueil du site du cours
 
 Chaque deck inclut le contenu des modules (`{{< include >}}`) précédé d'un
 marqueur d'options lu par commun/filtres/marques.lua.
@@ -184,9 +184,15 @@ def _entry_line(entry: Entry, chapter_prefix: str) -> str:
     return f"- {line}"
 
 
+def _tool_line(module: Module, prefix: str) -> str:
+    return f"- [{module.title}]({prefix}modules/{module.id}/outil.html)"
+
+
 def _track_index(track: Track) -> str:
-    # Depuis _rendu/slides/decks/parcours/<nom>/ jusqu'au poly, rendu dans _rendu/poly/
+    # Depuis _rendu/slides/decks/parcours/<nom>/ jusqu'au poly (_rendu/poly/) et aux
+    # outils (_rendu/outils/)
     chapter_prefix = "../../../../poly/"
+    tool_prefix = "../../../../outils/"
     total = sum(s.duration for s in track.sessions)
     lines = [
         _front_matter(title=track.title, subtitle=f"Parcours {track.name}", format="html").rstrip(),
@@ -208,15 +214,47 @@ def _track_index(track: Track) -> str:
             *[_entry_line(e, chapter_prefix) for e in session.entries],
             "",
         ]
+        tools = [e.module for e in session.entries if e.module.has_tool]
+        if tools:
+            lines += ["Outils interactifs :", "", *[_tool_line(m, tool_prefix) for m in tools], ""]
     return "\n".join(lines)
 
 
 def _site_index(modules: dict[str, Module], tracks: list[Track]) -> str:
-    lines = [_front_matter(title="Slides du cours", format="html").rstrip(), "", "## Parcours", ""]
-    lines += [
-        f"- [{t.title}](parcours/{t.name}/index.html) — {len(t.sessions)} séance(s)" for t in tracks
+    """Page d'accueil du site : parcours, poly, outils, slides de chaque module.
+
+    Rendue dans _rendu/slides/decks/ : le poly et les outils sont deux niveaux plus haut.
+    """
+    lines = [
+        _front_matter(
+            title="Économie de l'électricité",
+            subtitle="Marchés, analyse économique et modélisation",
+            format="html",
+        ).rstrip(),
+        "",
+        "Cours modulaire : chaque parcours, d'une session ou d'un format, réunit ses slides,",
+        "les chapitres du poly à lire et les outils de simulation.",
+        "",
+        "## Parcours",
+        "",
     ]
-    lines += ["", "## Modules", ""]
+    for t in tracks:
+        total = sum(s.duration for s in t.sessions)
+        lines.append(
+            f"- [{t.title}](parcours/{t.name}/index.html) : {len(t.sessions)} séance(s), "
+            f"{total} min"
+        )
+    lines += [
+        "",
+        "## Poly",
+        "",
+        "Tous les modules du cours, en [ligne](../../poly/index.html)"
+        + " et en [PDF](../../poly/economie-electricite.pdf).",
+    ]
+    tools = [m for m in modules.values() if m.has_tool and not m.is_example]
+    if tools:
+        lines += ["", "## Outils interactifs", "", *[_tool_line(m, "../../outils/") for m in tools]]
+    lines += ["", "## Slides par module", ""]
     for module in modules.values():
         versions = " · ".join(
             f"[{options_label(options)}](modules/{module.slug}/{name}.html)"

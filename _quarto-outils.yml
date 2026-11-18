@@ -1,0 +1,27 @@
+# Profil « outils » : pages interactives (Observable JS) des modules, une par outil.
+# Sources : modules/<id>/outil.qmd. Le modèle JavaScript de chaque outil est à côté
+# (modules/<id>/modele.js) et reproduit le code Python de pyelec (tests/test_modele_js.py).
+
+project:
+  type: website
+  output-dir: _rendu/outils
+  render:
+    - modules/*/outil.qmd
+
+website:
+  title: "Économie de l'électricité — outils"
+  navbar:
+    left:
+      - text: Accueil
+        href: ../slides/decks/index.html
+      - text: Poly
+        href: ../poly/index.html
+
+filters:
+  - commun/filtres/typographie.lua
+
+format:
+  html:
+    theme: [cosmo, commun/poly.scss]
+    page-layout: full
+    toc: false

@@ -1,0 +1,7 @@
+# Étude de cas : EnR et investissement {#sec-cas-enr-investissement}
+
+{{< include /commun/_macros.qmd >}}
+
+::: {.callout-note}
+Chapitre à rédiger : énoncé complet de l'étude de cas et définitions des indicateurs.
+:::

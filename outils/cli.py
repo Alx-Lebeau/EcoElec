@@ -5,6 +5,7 @@ uv run ecoelec generer              vérifie puis génère les decks dans decks/
 uv run ecoelec nouveau-module ID --titre "Titre"   crée un module en ébauche
 uv run ecoelec controler poly.log slides.log      contrôle les journaux et le rendu HTML
 uv run ecoelec pdf                  exporte en PDF les decks autonomes (decktape + Chrome)
+uv run ecoelec site                 racine du site publié : accueil et adresses des parcours
 """
 
 import argparse
@@ -23,6 +24,7 @@ from outils.catalog import load_modules
 from outils.controls import check_images, check_logs
 from outils.decks import OUTPUT, generate
 from outils.report import Report
+from outils.site import write_site
 from outils.tracks import Track, load_tracks
 
 MODULE_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -90,6 +92,21 @@ def cmd_generate(args) -> int:
         return 1
     written = generate(args.root, modules, tracks)
     print(f"\n{len(written)} fichiers générés dans {OUTPUT}/")
+    return 0
+
+
+def cmd_site(args) -> int:
+    report, _, tracks = check(args.root)
+    if not report.ok:
+        report.print()
+        return 1
+    rendu = args.root / args.rendu
+    missing = [d for d in ("poly", "slides", "outils") if not (rendu / d).is_dir()]
+    if missing:
+        print(f"Rendu incomplet dans {args.rendu}/ : {', '.join(missing)} manquant(s)")
+        return 1
+    written = write_site(rendu, tracks)
+    print(f"{len(written)} fichiers écrits à la racine de {args.rendu}/")
     return 0
 
 
@@ -206,6 +223,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dossier", default="_rendu/autonome", help="dossier des decks autonomes")
     p.add_argument("--chrome", help="chemin de Chrome ou Chromium")
     p.set_defaults(func=cmd_pdf)
+
+    p = sub.add_parser("site", help="écrire la racine du site publié (accueil, parcours)")
+    p.add_argument("--rendu", default="_rendu", help="dossier du rendu (défaut : _rendu)")
+    p.set_defaults(func=cmd_site)
 
     args = parser.parse_args(argv)
     args.root = (args.root or find_root(Path.cwd())).resolve()

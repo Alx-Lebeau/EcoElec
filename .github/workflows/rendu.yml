@@ -1,7 +1,10 @@
 # Rendu complet à chaque push : tests, poly (HTML + PDF), slides (decks des parcours,
-# base, intégrale et vue auteur de chaque module), decks autonomes et PDF, contrôles.
+# base, intégrale et vue auteur de chaque module), decks autonomes et PDF, outils
+# interactifs (OJS), contrôles.
 # Le rendu est disponible en artefact « rendu » de chaque exécution.
-# Publication sur GitHub Pages : à activer à l'ouverture du dépôt (job « publier » ci-dessous).
+# Sur main, le site est publié sur GitHub Pages (job « publier ») : _rendu/ en est la
+# racine (accueil, adresses courtes des parcours, poly, slides, outils). Prérequis :
+# Settings > Pages > Source : « GitHub Actions » (dépôt public ou offre payante).
 
 name: Rendu
 
@@ -41,7 +44,14 @@ jobs:
           version: ${{ env.QUARTO_VERSION }}
           tinytex: true
 
-      - name: Tests de l'outillage
+      # Node : test des modèles JavaScript des outils contre pyelec (obligatoire en CI,
+      # voir tests/test_modele_js.py), et decktape pour les PDF des decks.
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Tests de l'outillage et des modèles des outils
         run: uv run pytest
 
       - name: Vérifier modules et parcours, générer les decks
@@ -63,6 +73,9 @@ jobs:
       - name: Slides
         run: uv run quarto render --profile slides 2>&1 | tee slides.log
 
+      - name: Outils interactifs (OJS)
+        run: uv run quarto render --profile outils 2>&1 | tee outils.log
+
       - name: Decks des parcours en HTML autonome
         run: >-
           uv run quarto render decks/parcours --profile slides,autonome
@@ -76,8 +89,11 @@ jobs:
       - name: Decks des parcours en PDF
         run: uv run ecoelec pdf
 
+      - name: Racine du site (accueil, adresses courtes des parcours)
+        run: uv run ecoelec site
+
       - name: Contrôles (renvois masqués, références et images manquantes)
-        run: uv run ecoelec controler poly.log slides.log autonome.log autonome-exemple.log
+        run: uv run ecoelec controler poly.log slides.log outils.log autonome.log autonome-exemple.log
 
       - name: Déposer le rendu
         if: always()
@@ -89,7 +105,27 @@ jobs:
             *.log
           retention-days: 30
 
-  # publier:
-  #   needs: rendu
-  #   if: github.ref == 'refs/heads/main'
-  #   À compléter à l'ouverture du dépôt : actions/upload-pages-artifact + actions/deploy-pages.
+      - name: Préparer la publication (main seulement)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _rendu
+
+  publier:
+    needs: rendu
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    # Un seul déploiement à la fois, sans annuler celui en cours.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Publier sur GitHub Pages
+        id: deploiement
+        uses: actions/deploy-pages@v4

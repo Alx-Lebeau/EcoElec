@@ -195,6 +195,34 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
   charbon et gaz d'un cours antérieur de l'auteur.
 - **Licence** : CC BY-SA 4.0.
 
+### `exemple/parc-solaire.csv`
+
+- **Contenu** : coûts du solaire photovoltaïque au sol pour l'étude de cas « EnR et
+  investissement », mêmes colonnes que `exemple/parc-long-terme.csv` : investissement
+  (900 €/kW), coûts fixes d'exploitation (22,5 €/kW/an), durée de vie (30 ans), taux
+  d'actualisation (7 %, celui des filières thermiques), coût variable nul.
+- **Source** : CRE, *État des lieux des appels d'offres PPE2* (rapport n° 2026-01,
+  15 janvier 2026), p. 15-16, projets au sol retenus jusqu'en juin 2025 : CAPEX
+  « proche de 900 €/kWc », OPEX de 20 à 25 €/kWc/an (milieu de la fourchette retenu).
+  Entrée `cre-ao-ppe2-2026` de `commun/biblio.bib`. Saisie manuelle.
+- **Précautions** : coûts déclarés par les candidats aux appels d'offres, en €/kWc
+  (puissance crête), assimilés ici à des €/kW. Durée de vie de 30 ans retenue pour le
+  cours (le contrat de soutien dure 20 ans). Le solaire sur bâtiment coûte plus cher
+  (environ 1 150 €/kWc).
+
+### `production/solaire-2025.csv`
+
+- **Contenu** : production solaire nationale horaire en 2025 (GW, heure locale de
+  Paris), mêmes heures que `consommation/courbe-charge-2025.csv`.
+- **Source** : RTE, « Données éCO2mix nationales consolidées et définitives » (ODRÉ).
+- **Traitements** : pas de 30 minutes moyenné par heure, MW → GW ;
+  `production/telecharger_solaire.py ANNÉE` régénère le fichier.
+- **Précautions** : `pyelec.case_study.load_solar_profile` en déduit un facteur de
+  charge horaire en divisant par la moyenne des capacités installées en début et en fin
+  d'année (`mix/mix-france.csv`), le parc ayant crû d'environ 6 GW en 2025. Total
+  annuel (32,5 TWh) proche de la production annuelle publiée (32,9 TWh).
+- **Licence** : Licence Ouverte v2.0 (Etalab).
+
 ### `exemple/parc-long-terme.csv`
 
 - **Contenu** : options d'investissement du module long terme (TAC, CCG, nucléaire) :

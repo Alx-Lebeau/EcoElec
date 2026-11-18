@@ -26,6 +26,8 @@ uv run quarto render --profile poly              # poly → _rendu/poly/
 uv run quarto render --profile slides            # decks → _rendu/slides/
 uv run quarto render decks/parcours --profile slides,autonome --output-dir _rendu/autonome
 uv run ecoelec pdf                               # PDF des decks autonomes (decktape, Chrome)
+uv run quarto render --profile outils            # outils interactifs (OJS) → _rendu/outils/
+uv run ecoelec site                              # racine du site : accueil, adresses des parcours
 uv run ecoelec controler poly.log slides.log     # avertissements Quarto, images manquantes
 uv run ecoelec nouveau-module ID --titre "…"     # module en ébauche
 ```
@@ -38,9 +40,9 @@ fournit le Python du projet.
 
 | Chemin | Contenu |
 |---|---|
-| `_quarto.yml`, `_quarto-*.yml` | configuration commune et profils `poly`, `slides`, `autonome` |
+| `_quarto.yml`, `_quarto-*.yml` | configuration commune et profils `poly`, `slides`, `autonome`, `outils` |
 | `commun/` | macros, bibliographie, thèmes, filtres Lua (voir `commun/README.md`) |
-| `modules/<id>/` | `module.yml`, `poly.qmd` (chapitre), `slides.qmd` (slides marquées), `tp/` |
+| `modules/<id>/` | `module.yml`, `poly.qmd` (chapitre), `slides.qmd` (slides marquées), `tp/`, `outil.qmd` et `modele.js` (outil OJS, port JS d'un modèle de `pyelec`, testé par `tests/test_modele_js.py`) |
 | `modules/_exemple/` | module de démonstration des marques, hors poly et parcours, rendu par la CI |
 | `parcours/*.yml` | un parcours par format type ou par session réelle |
 | `pyelec/` | code partagé : chemins, palette, style, figures, schémas (`schema`, `organisation`, `lois`) |
@@ -156,6 +158,16 @@ parcours, une page des séances avec les chapitres du poly à lire.
 - Aucun chiffre recopié à la main dans une slide : le calculer depuis `data/`.
 - Chiffres et éléments réglementaires datés : vérifier contre des sources
   actuelles, signaler toute modification, citer les sources (`commun/biblio.bib`).
+
+## Site publié
+
+Un seul site GitHub Pages (job `publier` de la CI, sur `main`), de racine `_rendu/` :
+`index.html` redirige vers l'accueil (`slides/decks/index.html`, généré par `ecoelec
+generer`), `parcours/<nom>/` est l'adresse courte d'un parcours (`ecoelec site`), puis
+`poly/`, `slides/` et `outils/`. Chaque page de parcours liste ses decks, les chapitres
+du poly et les outils de ses modules (`modules/<id>/outil.qmd`). Liens entre les trois
+rendus : chemins relatifs, ou `{{< meta site-cours >}}` (adresse du site, `_quarto.yml`)
+depuis les slides, dont les decks autonomes et les PDF.
 
 ## Données et publication
 

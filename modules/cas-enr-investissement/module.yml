@@ -1,0 +1,9 @@
+titre: "Étude de cas : EnR et investissement"
+prerequis: [court-terme, long-terme]
+objectifs:
+  - Simuler le fonctionnement et le parc optimal d'un système électrique stylisé
+  - Distinguer l'effet de court terme (parc donné) et de long terme (parc adapté)
+  - Mesurer l'effet d'un prix du CO₂ et du solaire sur le parc, les prix et les rentes
+  - Estimer la subvention nécessaire au solaire hors marché et sa valeur de marché
+duree: 180                           # séance entière : présentation, puis travail sur l'outil
+tp: []                               # outil interactif : outil.qmd (profil outils)

@@ -5,15 +5,20 @@
 #   quarto render --profile slides   → decks générés par `ecoelec generer`, _rendu/slides/
 # Profil d'appoint, à combiner avec slides :
 #   --profile slides,autonome        → decks en un seul fichier HTML, utilisables hors connexion
+# Profil des outils interactifs (pages OJS des modules) :
+#   quarto render --profile outils   → _rendu/outils/
 
 project:
   output-dir: _rendu
 
 profile:
   group:
-    - [poly, slides]
+    - [poly, slides, outils]
 
 lang: fr
+# Adresse du site publié (GitHub Pages, voir `ecoelec site`) : liens absolus des
+# slides vers les outils, valables aussi dans les decks autonomes et les PDF.
+site-cours: https://alx-lebeau.github.io/EcoElec
 bibliography: commun/biblio.bib
 
 jupyter: python3
