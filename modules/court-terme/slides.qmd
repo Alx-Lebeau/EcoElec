@@ -153,21 +153,33 @@ pour le CO₂ émis.
 $$
 \CV = \frac{p_{\text{gaz}} + e \times p_{\text{CO}_2}}{\eta} + \text{VOM}
 $$
-
-Par MWh de gaz **PCS** (pouvoir calorifique supérieur), unité des marchés :
-
-- $\eta$ : rendement, `{python} rendement("ccg", "pcs")` % PCS (CCG)
-- $e$ : `{python} number(centrales.loc["ccg", "facteur_emission"], 2)` tCO₂/MWh PCS
-- VOM : exploitation et maintenance
 :::
 ::::
+
+:::: {.columns .sous-schema}
+::: {.column width="33%"}
+$\eta$ : **rendement**, `{python} rendement("ccg", "pcs")` % pour un CCG
+:::
+::: {.column width="33%"}
+$e$ : **facteur d'émission**, `{python} number(centrales.loc["ccg", "facteur_emission"], 2)` tCO₂
+par MWh de gaz
+:::
+::: {.column width="34%"}
+**VOM** (*variable operation and maintenance*) : coûts variables d'exploitation et de
+maintenance
+:::
+::::
+
+::: {.sous-schema}
+Gaz compté en MWh **PCS** (pouvoir calorifique supérieur), l'unité des marchés.
+:::
 
 ::: {.notes}
 Lire le schéma de gauche à droite : 1 MWh PCS de gaz entre, la moitié environ en
 ressort sous forme d'électricité, le reste part en chaleur. Le CO₂ émis dépend du gaz
 brûlé, pas de l'électricité produite : d'où la division par le rendement.
 
-VOM : *variable operation and maintenance*. Quelques euros par MWh, presque rien
+VOM : quelques euros par MWh, presque rien
 devant le combustible.
 
 PCS et PCI : le pouvoir calorifique supérieur compte la chaleur récupérable en
