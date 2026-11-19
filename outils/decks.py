@@ -37,6 +37,15 @@ MODULE_DECKS = {"base": (), "integral": OPTIONS}
 SHARED_SOURCES = ("commun/_macros.qmd", "pyelec", "data")
 
 
+def _charts(root: Path, sources: list[str]) -> dict:
+    """Chargement d'ECharts en fin de page si l'une des sources appelle `echarts.chart(`."""
+    if not any("echarts.chart(" in (root / s).read_text(encoding="utf-8") for s in sources):
+        return {}
+    from pyelec.echarts import loader_html  # import tardif : pandas, matplotlib
+
+    return {"include-after-body": [{"text": loader_html()}]}
+
+
 def _fingerprint(root: Path, sources: list[str]) -> str:
     """Empreinte du contenu des fichiers (ou dossiers) donnés, relatifs à la racine."""
     digest = hashlib.sha256()
@@ -112,7 +121,9 @@ def _module_decks(root: Path, out: Path, module: Module) -> list[Path]:
     folder = out / "modules" / module.slug
     # Deck isolé : aucun module ne précède, tous les rappels sont affichés.
     missing = list(module.prerequisites)
-    fingerprint = _fingerprint(root, [f"modules/{module.id}/slides.qmd"])
+    sources = [f"modules/{module.id}/slides.qmd"]
+    fingerprint = _fingerprint(root, sources)
+    charts = _charts(root, sources)
     written = []
     for name, options in MODULE_DECKS.items():
         front = _front_matter(
@@ -120,6 +131,7 @@ def _module_decks(root: Path, out: Path, module: Module) -> list[Path]:
             subtitle=options_label(options).capitalize(),
             footer=module.title,
             ecoelec={"vue": "version", "empreinte": fingerprint},
+            **charts,
         )
         body = _module_body(module, options, missing, section_title=False)
         written.append(_write(folder / f"{name}.qmd", _deck(front, [body])))
@@ -128,6 +140,7 @@ def _module_decks(root: Path, out: Path, module: Module) -> list[Path]:
         subtitle="Vue auteur",
         footer=f"{module.title} — vue auteur",
         ecoelec={"vue": "auteur", "empreinte": fingerprint},
+        **charts,
     )
     body = _module_body(module, OPTIONS, missing, section_title=False)
     written.append(_write(folder / "auteur.qmd", _deck(front, [body])))
@@ -147,6 +160,7 @@ def _session_deck(root: Path, track: Track, session: Session) -> str:
         subtitle=f"{track.title} — séance {session.number}",
         footer=f"{track.title} — séance {session.number}",
         ecoelec={"vue": "version", "empreinte": _fingerprint(root, sources)},
+        **_charts(root, sources),
     )
     blocks = []
     if session.introduction:

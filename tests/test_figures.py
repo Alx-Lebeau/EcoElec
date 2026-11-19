@@ -153,3 +153,54 @@ def test_graphiques_economie():
         economie.market(ax, voll=voll)
         economie.marginal_utility(ax, voll=voll)
         plt.close(fig)
+
+
+def test_echarts_formateurs_et_typographie():
+    """Options ECharts : JSON valide, formateurs « fn: » définis dans echarts.js, espaces insécables."""
+    import json
+    import re
+
+    import numpy as np
+    import pandas as pd
+
+    from pyelec import ROOT, echarts
+
+    mix = pd.DataFrame(
+        {
+            "annee": [2024, 2024, 2025, 2025],
+            "filiere": ["nucleaire", "solaire", "nucleaire", "solaire"],
+            "capacite_gw": [63.0, 20.0, 63.0, 25.0],
+            "production_twh": [360.0, 25.0, 370.0, 30.0],
+        }
+    )
+    hours = pd.date_range("2025-01-01", "2025-12-31 23:00", freq="h")
+    load = pd.DataFrame(
+        {
+            "heure_locale": hours.strftime("%Y-%m-%d %H:%M"),
+            "consommation_gw": 50 + np.arange(len(hours)) % 24,
+        }
+    )
+    days = pd.date_range("2025-01-01", "2025-12-31", freq="D")
+    temperature = pd.DataFrame(
+        {"date": days.strftime("%Y-%m-%d"), "temperature_c": np.linspace(0, 25, len(days))}
+    )
+    options = [
+        echarts.mix_option(mix),
+        echarts.sector_donut_option(
+            pd.Series({"residentiel": 50.0, "industrie": 45.0, "agriculture": 3.0})
+        ),
+        echarts.load_variability_option(load, temperature)[0],
+        echarts.market_shares_option(
+            [("Production : test", [("A", 0.7, "#000"), ("B", 0.3, "#fff")])],
+            groups=[(0, "G", 0, 0)],
+        ),
+    ]
+    script = (ROOT / "pyelec" / "echarts.js").read_text(encoding="utf-8")
+    for option in options:
+        block = echarts.chart(option, source="Test", date="2025")
+        data = json.loads(re.search(r'application/json">(.*?)</script>', block).group(1))
+        for name in set(re.findall(r'"fn:([\w-]+)"', json.dumps(data))):
+            assert re.search(rf'(^|\s|"){re.escape(name)}"?:', script, re.MULTILINE), name
+    assert " :" not in json.dumps(
+        echarts._typography({"t": "Production : 3 %"}), ensure_ascii=False
+    )

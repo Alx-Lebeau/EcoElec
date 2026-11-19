@@ -5,14 +5,14 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from pyelec import DATA_DIR, style
-from pyelec.figures import capacity_and_production, load_variability, sector_donut
+from pyelec import DATA_DIR, echarts, style
 from pyelec.lois import physical_laws
-from pyelec.organisation import ACTOR_COLORS, market_overview, two_circuits
+from pyelec.organisation import ACTOR_COLORS, market_chain_html, two_circuits
 from pyelec.organisation import new_figure as new_orga_figure
 from pyelec.schema import ACCENTS, grid_diagram, new_figure
 
 style.use()
+style.use_svg()
 
 fig, ax = new_figure()
 grid_diagram(ax)
@@ -111,18 +111,19 @@ Faire nommer les filières par le public, puis demander ce qui les distingue.
 
 ## Le mix électrique français {.approfondissement}
 
-::: {.figure-large}
 ```{python}
+#| output: asis
 mix = pd.read_csv(DATA_DIR / "mix" / "mix-france.csv")
 annee_mix = mix["annee"].max()
+premiere_mix = mix["annee"].min()
+print(echarts.chart(
+    echarts.mix_option(mix),
+    height=390,
+    source="RTE, parc et production par filière (via ODRÉ)",
+    date=f"{premiere_mix}-{annee_mix}",
+))
 mix = mix[mix["annee"] == annee_mix]
-
-fig = plt.figure(figsize=(9.5, 3.0), layout="constrained")
-capacity_and_production(fig, mix)
-style.add_source(fig, "RTE, parc et production par filière (via ODRÉ)", str(annee_mix))
-plt.show()
 ```
-:::
 
 ```{python}
 fc = mix.set_index("filiere")
@@ -329,10 +330,13 @@ part = derniere / derniere.sum()
 :::: {.columns}
 ::: {.column width="55%"}
 ```{python}
-fig, ax = plt.subplots(figsize=(6, 4.5))
-sector_donut(ax, derniere)
-style.add_source(fig, "SDES, données locales de consommation (via ODRÉ)", str(annee))
-plt.show()
+#| output: asis
+print(echarts.chart(
+    echarts.sector_donut_option(derniere),
+    height=440,
+    source="SDES, données locales de consommation (via ODRÉ)",
+    date=str(annee),
+))
 ```
 :::
 ::: {.column width="45%"}
@@ -352,23 +356,21 @@ dans la journée ? Transition vers la courbe de charge.
 
 ## Une consommation variable
 
-::: {.figure-large}
 ```{python}
+#| output: asis
 annee_courbe = 2025  # fichiers produits par data/consommation/telecharger_courbe.py
 courbe = pd.read_csv(DATA_DIR / "consommation" / f"courbe-charge-{annee_courbe}.csv")
 temperature = pd.read_csv(DATA_DIR / "consommation" / f"temperature-{annee_courbe}.csv")
 rte = pd.read_csv(DATA_DIR / "consommation" / "thermosensibilite-rte.csv")
 thermo_rte = rte.set_index("indicateur").loc["thermosensibilite_hiver", "valeur"]
-fig = plt.figure(figsize=(10, 3.9))
-thermo = load_variability(fig, courbe, temperature)
-style.add_source(
-    fig,
-    "RTE, éCO2mix ; Météo-France, températures quotidiennes ; calcul de l'auteur",
-    str(annee_courbe),
-)
-plt.show()
+option, thermo = echarts.load_variability_option(courbe, temperature)
+print(echarts.chart(
+    option,
+    height=465,
+    source="RTE, éCO2mix ; Météo-France, températures quotidiennes ; calcul de l'auteur",
+    date=str(annee_courbe),
+))
 ```
-:::
 
 ::: {.sous-schema}
 **Thermosensibilité** : l'hiver, environ `{python} f"{thermo_rte:.1f}".replace(".", ",")` GW
@@ -502,12 +504,12 @@ detail = detail.set_index("indicateur")["valeur"]
 alternatifs = detail["part_consommation_fournisseurs_alternatifs"] / 100
 ```
 
-::: {.figure-large}
 ```{python}
-fig = plt.figure(figsize=(10, 4.0))
+#| output: asis
 c = ACTOR_COLORS
-market_overview(
-    fig,
+print(market_chain_html())
+print(echarts.chart(
+    echarts.market_shares_option(
     [
         (
             f"Production en France ({annee_prod})",
@@ -526,16 +528,13 @@ market_overview(
             ],
         ),
     ],
-    groups=[(0, f"EDF : au moins {part_edf * 100:.0f} %", 0, 1)],
-)
-style.add_source(
-    fig,
-    "RTE, EDF, CNR (production) ; CRE, observatoire des marchés de détail (fourniture)",
-    str(date_detail.year),
-)
-plt.show()
+    groups=[(0, f"EDF : au moins {part_edf * 100:.0f} %", 0, 1)],
+    ),
+    height=350,
+    source="RTE, EDF, CNR (production) ; CRE, observatoire des marchés de détail (fourniture)",
+    date=str(date_detail.year),
+))
 ```
-:::
 
 ::: {.sous-schema}
 **Amont très concentré** autour d'EDF ; **aval plus concurrentiel**.

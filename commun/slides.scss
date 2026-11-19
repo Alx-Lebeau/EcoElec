@@ -214,6 +214,42 @@ $presentation-h2-font-size: 1.3em;
   object-fit: contain;
 }
 
+// Graphique ECharts (pyelec.echarts.chart) et mention de source dessous.
+.reveal .slides .echart {
+  width: 100%;
+  margin: 0;
+}
+.reveal .slides .echart-canvas {
+  width: 100%;
+}
+.reveal .slides .source-figure {
+  margin: 0.2em 0 0;
+  font-size: 0.42em;
+  color: #64748b;
+  text-align: left;
+}
+
+// Chaîne contractuelle en HTML (pyelec.organisation.market_chain_html).
+.reveal .slides .chaine {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0 0 0.5em;
+}
+.reveal .slides .chaine-etape {
+  flex: 1;
+  padding: 0.45em 0.3em;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 0.68em;
+  font-weight: bold;
+  line-height: 1.15;
+}
+.reveal .slides .chaine-fleche {
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
 // Figure étirée à toute la largeur de sa colonne (cellule `#| classes: figure-colonne`).
 .reveal .slides .figure-colonne img {
   width: 100%;

@@ -49,3 +49,15 @@ def add_source(fig: plt.Figure, source: str, date: str) -> None:
         color="0.4",
         transform=fig.transFigure,
     )
+
+
+def use_svg() -> None:
+    """Figures des notebooks en SVG, texte laissé en texte (slides).
+
+    Vectoriel : net à toute taille de projection et dans les PDF. Le texte est
+    rendu par le navigateur avec la police du deck au lieu d'être vectorisé.
+    """
+    from matplotlib_inline.backend_inline import set_matplotlib_formats
+
+    mpl.rcParams["svg.fonttype"] = "none"
+    set_matplotlib_formats("svg")
