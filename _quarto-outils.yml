@@ -9,11 +9,21 @@ project:
     - modules/*/outil.qmd
 
 website:
+  favicon: commun/logo.svg
   title: "Économie de l'électricité — outils"
+  # Barre de navigation commune au poly et aux outils, reprise de l'en-tête de
+  # l'accueil React (accueil/src/App.jsx) : garder les trois identiques.
   navbar:
+    title: "Économie de l'électricité"
+    logo: commun/logo.svg
+    logo-href: ../index.html
     left:
-      - text: Accueil
-        href: ../slides/decks/index.html
+      - text: Parcours
+        href: ../index.html#/parcours
+      - text: Modules
+        href: ../index.html#/modules
+      - text: Outils
+        href: ../index.html#/outils
       - text: Poly
         href: ../poly/index.html
 
@@ -22,6 +32,11 @@ filters:
 
 format:
   html:
-    theme: [cosmo, commun/poly.scss]
+    # Quarto empile les couches scss:defaults en ordre inverse : la charte, listée en
+    # dernier, est déclarée en premier (voir commun/README.md).
+    # Mode clair seulement : les graphiques des outils ont des couleurs écrites pour
+    # un fond clair (traits, aplats, tableaux). Mode sombre à ajouter quand ils
+    # suivront le thème.
+    theme: [cosmo, commun/site.scss, commun/charte.scss]
     page-layout: full
     toc: false

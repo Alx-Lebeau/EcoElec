@@ -40,6 +40,7 @@ pyelec/                code partagé (palette, style des figures, chemins…)
 outils/                commande `ecoelec` : vérification des parcours, génération des decks
 data/                  petits jeux de données ouverts et scripts de téléchargement
 tests/                 tests de l'outillage
+accueil/               accueil du site publié (React + Vite)
 decks/                 decks générés par `ecoelec generer` (non versionnés)
 _freeze/               résultats de calcul en cache (non versionnés)
 ```
@@ -48,7 +49,8 @@ _freeze/               résultats de calcul en cache (non versionnés)
 
 Prérequis : [uv](https://docs.astral.sh/uv/), [Quarto](https://quarto.org/docs/get-started/)
 (version figée dans la CI), une distribution TeX pour le PDF du poly
-(`quarto install tinytex`) et Chrome ou Chromium pour le PDF des decks.
+(`quarto install tinytex`), Chrome ou Chromium pour le PDF des decks et
+[Node.js](https://nodejs.org) (22 ou plus) pour l'accueil du site.
 
 ```sh
 uv sync
@@ -71,6 +73,15 @@ uv run quarto render decks/parcours --profile slides,autonome --output-dir _rend
 
 # PDF des decks autonomes (decktape, Chrome ou Chromium)
 uv run ecoelec pdf
+
+# Outils interactifs (OJS) → _rendu/outils/
+uv run quarto render --profile outils
+
+# Accueil du site (Node.js requis) : adresses courtes des parcours, puis accueil React
+uv run ecoelec site
+npm ci --prefix accueil
+npm run build --prefix accueil
+npm run preview --prefix accueil    # aperçu de tout _rendu/ sur http://localhost:4173
 
 # Créer un module à partir du modèle
 uv run ecoelec nouveau-module mon-module

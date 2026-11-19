@@ -1,17 +1,10 @@
 /*-- scss:defaults --*/
 
-// Charte du cours : bleu nuit, bleu des titres, accent cyan « électrique ».
-// L'accent ne porte aucun sens : il est réservé à l'habillage (filets, étiquettes,
-// progression) et ne reprend aucune couleur des schémas ni des filières.
-// Polices système uniquement : aucun appel réseau, decks projetables hors connexion.
-$font-family-sans-serif: "Helvetica Neue", Helvetica, Arial, sans-serif;
-$nuit: #1e293b;
-$accent: #0891b2;
-$accent-clair: #22d3ee;
-$gris-filet: #e2e8f0;
-$gris-texte: #94a3b8;
-$presentation-heading-color: #1f4e79;
-$link-color: #1f4e79;
+// Couleurs et police : charte commune à tous les rendus (charte.scss, listée en dernier).
+
+$font-family-sans-serif: $police;
+$presentation-heading-color: $bleu;
+$link-color: $bleu;
 $presentation-font-size-root: 32px;
 $presentation-h2-font-size: 1.3em;
 

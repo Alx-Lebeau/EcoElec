@@ -7,18 +7,11 @@ project:
   type: website
   output-dir: _rendu/slides
   render:
-    - decks/index.qmd
     - decks/**/*.qmd
 
 website:
   title: "Économie de l'électricité"
-  # Page d'accueil du site publié (racine : _rendu/, voir `ecoelec site`).
-  navbar:
-    left:
-      - text: Accueil
-        href: decks/index.qmd
-      - text: Poly
-        href: ../poly/index.html
+  # Pas de barre de navigation : les decks reveal.js n'en affichent pas.
 
 filters:
   - path: commun/filtres/parties.lua
@@ -30,7 +23,7 @@ filters:
 format:
   revealjs:
     author: Alexis Lebeau
-    theme: [default, commun/slides.scss]
+    theme: [default, commun/slides.scss, commun/charte.scss] # charte en dernier : voir commun/README.md
     width: 1280
     height: 720
     margin: 0.06

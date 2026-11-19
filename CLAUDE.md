@@ -27,7 +27,9 @@ uv run quarto render --profile slides            # decks → _rendu/slides/
 uv run quarto render decks/parcours --profile slides,autonome --output-dir _rendu/autonome
 uv run ecoelec pdf                               # PDF des decks autonomes (decktape, Chrome)
 uv run quarto render --profile outils            # outils interactifs (OJS) → _rendu/outils/
-uv run ecoelec site                              # racine du site : accueil, adresses des parcours
+uv run ecoelec site                              # adresses courtes des parcours (_rendu/parcours/)
+npm ci --prefix accueil && npm run build --prefix accueil   # accueil React → _rendu/index.html
+npm run preview --prefix accueil                 # sert tout _rendu/ (http://localhost:4173)
 uv run ecoelec controler poly.log slides.log     # avertissements Quarto, images manquantes
 uv run ecoelec nouveau-module ID --titre "…"     # module en ébauche
 ```
@@ -48,7 +50,8 @@ fournit le Python du projet.
 | `pyelec/` | code partagé : chemins, palette, style, figures, schémas (`schema`, `organisation`, `lois`) |
 | `outils/` | commande `ecoelec` |
 | `data/` | petits jeux de données ouverts par thème, documentés dans `data/README.md` |
-| `decks/` | **généré** par `ecoelec generer`, non versionné : ne jamais l'éditer |
+| `accueil/` | accueil du site (React + Vite), lit `decks/catalogue.json` |
+| `decks/` | **généré** par `ecoelec generer`, non versionné : ne jamais l'éditer (dont `catalogue.json`, données de l'accueil) |
 | `_freeze/` | résultats de calcul en cache, non versionnés (cache de la CI) |
 
 ## Modules
@@ -162,12 +165,27 @@ parcours, une page des séances avec les chapitres du poly à lire.
 ## Site publié
 
 Un seul site GitHub Pages (job `publier` de la CI, sur `main`), de racine `_rendu/` :
-`index.html` redirige vers l'accueil (`slides/decks/index.html`, généré par `ecoelec
-generer`), `parcours/<nom>/` est l'adresse courte d'un parcours (`ecoelec site`), puis
-`poly/`, `slides/` et `outils/`. Chaque page de parcours liste ses decks, les chapitres
-du poly et les outils de ses modules (`modules/<id>/outil.qmd`). Liens entre les trois
-rendus : chemins relatifs, ou `{{< meta site-cours >}}` (adresse du site, `_quarto.yml`)
-depuis les slides, dont les decks autonomes et les PDF.
+
+- `index.html` et `accueil/` : accueil React (`accueil/`, Vite), construit par
+  `npm run build` dans `_rendu/` sans effacer les rendus Quarto. Vues adressées par le
+  fragment de l'URL : `#/` (sections `#/parcours`, `#/modules`, `#/outils`),
+  `#/parcours/<nom>` (séances : decks en ligne, autonomes et PDF, chapitres, outils),
+  `#/modules/<id>` (objectifs, durées, prérequis, ressources, parcours qui l'utilisent).
+- Données : `decks/catalogue.json`, écrit par `ecoelec generer` (`outils/site.py`) avec
+  les chemins des rendus relatifs à `_rendu/`. Toute information affichée vient de là :
+  pas de contenu de cours écrit dans les composants React.
+- `parcours/<nom>/` : adresse courte d'un parcours, redirige vers `#/parcours/<nom>`
+  (`ecoelec site`).
+- `poly/`, `slides/`, `autonome/`, `outils/` : rendus Quarto. Leur barre de navigation
+  renvoie à l'accueil (`../index.html`).
+- Liens entre rendus : chemins relatifs, ou `{{< meta site-cours >}}` (adresse du
+  site, `_quarto.yml`) depuis les slides, dont les decks autonomes et les PDF.
+- Thème : une seule charte (`commun/charte.scss`) pour les slides, le poly, les outils
+  et l'accueil (`accueil/src/style.scss`). Ordre des couches et mode sombre :
+  `commun/README.md`. En-têtes du poly, des outils et de l'accueil identiques : les
+  modifier ensemble.
+- Textes de l'interface de l'accueil en français, espaces insécables écrites (`NBSP`
+  de `accueil/src/format.js`) : `typographie.lua` ne s'applique pas à l'accueil.
 
 ## Données et publication
 

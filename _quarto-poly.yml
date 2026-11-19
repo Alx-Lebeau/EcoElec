@@ -6,17 +6,28 @@ project:
   output-dir: _rendu/poly
 
 book:
+  favicon: commun/logo.svg
   title: "Économie de l'électricité"
   subtitle: "Marchés, analyse économique et modélisation"
   author: Alexis Lebeau
   date: last-modified
   date-format: long
   output-file: economie-electricite
-  sidebar:
-    tools:
-      - icon: house-door
-        text: Accueil du cours
-        href: ../slides/decks/index.html
+  # Barre de navigation commune au poly et aux outils, reprise de l'en-tête de
+  # l'accueil React (accueil/src/App.jsx) : garder les trois identiques.
+  navbar:
+    title: "Économie de l'électricité"
+    logo: commun/logo.svg
+    logo-href: ../index.html
+    left:
+      - text: Parcours
+        href: ../index.html#/parcours
+      - text: Modules
+        href: ../index.html#/modules
+      - text: Outils
+        href: ../index.html#/outils
+      - text: Poly
+        href: ../poly/index.html
   chapters:
     - index.qmd
     - modules/systeme/poly.qmd
@@ -44,7 +55,12 @@ crossref:
 
 format:
   html:
-    theme: [cosmo, commun/poly.scss]
+    # Quarto empile les couches scss:defaults en ordre inverse : la charte, listée en
+    # dernier, est déclarée en premier (voir commun/README.md).
+    theme:
+      light: [cosmo, commun/site.scss, commun/charte.scss]
+      dark: [cosmo, commun/site.scss, commun/site-sombre.scss, commun/charte.scss]
+    respect-user-color-scheme: true
     toc-depth: 3
   pdf:
     documentclass: scrbook
