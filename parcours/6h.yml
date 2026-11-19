@@ -1,6 +1,7 @@
 # Brouillon, à valider. Format type 6h, d'après organisation-du-cours.md (section 5) :
 # les modules du 3h avec approfondissements et formalisme, plus l'architecture des marchés et le TP court terme.
 # Point ouvert : représentation des TP dans les parcours (séance dédiée, durée).
+publie: false                        # masqué sur le site en attendant
 titre: Économie des marchés de l'électricité
 options: [approfondissement, formel]
 seances:

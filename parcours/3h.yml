@@ -2,6 +2,7 @@
 # système, court terme et long terme sans option, puis un cas d'application.
 # Points ouverts : place de `cadre` (≈ 20 min ou absent, avec rappels dans court-terme) ;
 # découpage en séances.
+publie: false                        # masqué sur le site en attendant
 titre: Comprendre le prix de l'électricité
 seances:
   - titre: Du système électrique au prix de court terme

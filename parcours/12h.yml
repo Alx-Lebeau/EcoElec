@@ -2,6 +2,7 @@
 # le socle complet, les deux TP, et deux ou trois modules au choix.
 # Ici : capacité, réseaux et TURPE, ENR et flexibilités (choix à faire selon la session).
 # Point ouvert : représentation des TP dans les parcours (séance dédiée, durée).
+publie: false                        # masqué sur le site en attendant
 titre: Économie de l'électricité
 options: [approfondissement, formel]
 seances:

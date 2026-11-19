@@ -203,3 +203,22 @@ def test_site_root(project: Path):
     assert 'url=../../#/parcours/court"' in short
     assert (rendu / ".nojekyll").exists()
     assert not (rendu / "index.html").exists()  # construit par `npm run build`
+
+
+def test_unpublished_track(project: Path):
+    from outils.site import write_site
+
+    path = project / "parcours/court.yml"
+    path.write_text("publie: false\n" + path.read_text(encoding="utf-8"), encoding="utf-8")
+    report, modules, tracks = check(project)
+    assert report.ok, [str(m) for m in report.messages]
+    assert not tracks[0].published
+    generate(project, modules, tracks)
+    # Decks générés, mais parcours absent du site
+    assert (project / OUTPUT / "parcours/court/seance-01.qmd").exists()
+    data = json.loads((project / OUTPUT / "catalogue.json").read_text(encoding="utf-8"))
+    assert data["parcours"] == []
+    assert all(m["utilisations"] == [] for m in data["modules"])
+    rendu = project / "_rendu"
+    write_site(rendu, tracks)
+    assert not (rendu / "parcours/court").exists()

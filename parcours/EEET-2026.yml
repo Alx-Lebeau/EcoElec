@@ -1,0 +1,22 @@
+# Session EEET 2026 : les séances du 6h jusqu'au long terme, puis l'étude de cas
+# EnR et investissement (séance entière, présentation puis travail sur l'outil).
+titre: Économie de l'électricité
+options: [approfondissement, formel]
+seances:
+  - titre: Le système électrique et le cadre d'analyse
+    duree: 90
+    modules:
+      - systeme
+      - cadre: {sans: approfondissement}
+  - titre: Équilibre de court terme
+    duree: 90
+    modules:
+      - court-terme
+  - titre: Équilibre de long terme
+    duree: 90
+    modules:
+      - long-terme
+  - titre: "Étude de cas : EnR et investissement"
+    duree: 180
+    modules:
+      - cas-enr-investissement

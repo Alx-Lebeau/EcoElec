@@ -81,7 +81,8 @@ def _track_entry(track: Track) -> dict:
 
 
 def catalogue(root: Path, modules: dict[str, Module], tracks: list[Track]) -> dict:
-    """Contenu du site : modules dans l'ordre du poly (sans le module d'exemple), parcours."""
+    """Contenu du site : modules dans l'ordre du poly (sans le module d'exemple), parcours publiés."""
+    tracks = [t for t in tracks if t.published]
     config = yaml.safe_load((root / "_quarto-poly.yml").read_text(encoding="utf-8")) or {}
     book = config.get("book", {})
     order = {c: i for i, c in enumerate(book_chapters(root))}
@@ -131,7 +132,7 @@ def write_site(rendu: Path, tracks: list[Track]) -> list[Path]:
         path.write_text(text, encoding="utf-8")
         written.append(path)
 
-    for track in tracks:
+    for track in (t for t in tracks if t.published):
         target = f"../../#/parcours/{track.name}"
         write(rendu / "parcours" / track.name / "index.html", _redirect(target, track.title))
     write(rendu / ".nojekyll", "")

@@ -4,6 +4,7 @@ Format :
 
     titre: Comprendre le prix de l'électricité
     options: [formel]                    # facultatif : ajoutées à la base de chaque module
+    publie: false                        # facultatif : masqué sur le site (decks générés quand même)
     seances:
       - titre: Du merit order au prix de long terme
         duree: 90                        # minutes
@@ -27,7 +28,7 @@ from outils import OPTIONS
 from outils.catalog import Module
 from outils.report import Report
 
-TRACK_KEYS = {"titre", "options", "seances"}
+TRACK_KEYS = {"titre", "options", "seances", "publie"}
 SESSION_KEYS = {"titre", "duree", "modules", "introduction", "conclusion"}
 
 
@@ -67,6 +68,7 @@ class Track:
     title: str
     options: tuple[str, ...]
     sessions: list[Session]
+    published: bool = True
 
     def entries(self) -> list[Entry]:
         return [e for s in self.sessions for e in s.entries]
@@ -104,6 +106,10 @@ def _load_track(path: Path, root: Path, modules: dict[str, Module], report: Repo
     options = _read_options(data.get("options"), "options du parcours", where, report)
     if options is None:
         return None
+    published = data.get("publie", True)
+    if not isinstance(published, bool):
+        report.error(where, f"publie : true ou false attendu, pas {published!r}")
+        return None
     raw_sessions = data.get("seances")
     if not isinstance(raw_sessions, list) or not raw_sessions:
         report.error(where, "aucune séance")
@@ -116,7 +122,7 @@ def _load_track(path: Path, root: Path, modules: dict[str, Module], report: Repo
         )
         if session:
             sessions.append(session)
-    track = Track(path.stem, path, title.strip(), tuple(options), sessions)
+    track = Track(path.stem, path, title.strip(), tuple(options), sessions, published)
     _check_track(track, where, report)
     return track
 

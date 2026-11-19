@@ -125,6 +125,8 @@ seances:
 ```
 
 Sans `options`, le parcours ne prend que la base de chaque module.
+`publie: false` masque un parcours sur le site (accueil, adresse courte) : il reste
+vérifié et ses decks sont générés et rendus.
 
 `ecoelec generer` vérifie que les durées tiennent dans chaque séance, signale les
 prérequis absents (les slides `.rappel` sont alors incluses) et produit, par
