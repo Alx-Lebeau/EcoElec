@@ -1,9 +1,14 @@
 /*-- scss:defaults --*/
 
-// Couleurs et police : charte commune à tous les rendus (charte.scss, listée en dernier).
+// Couleurs et polices : charte commune à tous les rendus (charte.scss, listée en dernier).
 
 $font-family-sans-serif: $police;
-$presentation-heading-color: $bleu;
+$presentation-heading-font: $police-titres;
+$presentation-heading-color: $encre;
+$presentation-heading-font-weight: 600;
+$presentation-heading-text-transform: none;
+$presentation-heading-letter-spacing: -0.005em;
+$body-color: $clair-texte;
 $link-color: $bleu;
 $presentation-font-size-root: 32px;
 $presentation-h2-font-size: 1.3em;
@@ -11,107 +16,94 @@ $presentation-h2-font-size: 1.3em;
 /*-- scss:rules --*/
 
 // ---------------------------------------------------------------------------
-// Habillage : slide de titre, ouverture de module, titres, parties, pied de page
+// Habillage : slide de titre, ouverture de module, titres, parties, pied de page.
+// Registre « note de recherche » : petites capitales pour les repères, filets fins
+// à l'encre, le bleu réservé aux repères.
 // ---------------------------------------------------------------------------
 
-// Slide de titre : fond bleu nuit (data-background-color, _quarto-slides.yml),
-// réseau maillé en filigrane, titre en blanc, filet cyan.
+// Repère en petites capitales (cours, module, partie).
+@mixin petites-capitales {
+  font-family: $police;
+  font-variant: small-caps;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+// Slide de titre : fond blanc, repère du cours, titre en serif, filet pleine
+// largeur au-dessus de l'auteur.
 .reveal .slides section#title-slide {
   text-align: left;
-  padding: 0 0 0 1em;
-}
-.reveal .slides section#title-slide::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 50%;
-  width: 42%;
-  aspect-ratio: 300 / 220;
-  transform: translateY(-50%);
-  background: no-repeat center / contain
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 220'><g fill='none' stroke='%233b5b85' stroke-width='3' stroke-linecap='round'><path d='M30 70 L110 25 L190 70 L270 25 M30 70 H190 M110 25 H270 M190 70 L270 25'/><path d='M70 70 V130 M190 70 V130 M70 130 H230 M130 130 V200 M90 200 H170'/></g><g fill='%231e293b' stroke='%235b8fc7' stroke-width='3'><circle cx='30' cy='70' r='7'/><circle cx='110' cy='25' r='7'/><circle cx='190' cy='70' r='7'/><circle cx='270' cy='25' r='7'/><circle cx='70' cy='130' r='5'/><circle cx='190' cy='130' r='5'/><circle cx='130' cy='200' r='5'/></g></svg>");
-  pointer-events: none;
+  padding: 0 0.6em;
 }
 .reveal .slides section#title-slide::before {
   content: "Économie de l'électricité";
   display: block;
-  font-size: 0.45em;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: $accent-clair;
-  margin-bottom: 1.2em;
+  @include petites-capitales;
+  font-size: 0.6em;
+  color: $bleu;
+  margin-bottom: 0.7em;
 }
 .reveal .slides section#title-slide .title {
-  color: white;
-  font-size: 1.9em;
+  color: $encre;
+  font-size: 1.85em;
   line-height: 1.1;
-  max-width: 62%;
-}
-.reveal .slides section#title-slide .title::after {
-  content: "";
-  display: block;
-  width: 1.2em;
-  height: 0.12em;
-  margin-top: 0.35em;
-  background: $accent-clair;
+  max-width: 82%;
+  margin-bottom: 0.45em;
+  text-wrap: balance;
 }
 .reveal .slides section#title-slide .subtitle {
-  color: #cbd5e1;
-  font-size: 0.75em;
+  color: $clair-texte-discret;
+  font-family: $police;
+  font-size: 0.7em;
   font-style: normal;
+  margin: 0 0 1.4em;
 }
-.reveal .slides section#title-slide .quarto-title-authors,
-.reveal .slides section#title-slide .quarto-title-author-name {
-  color: $gris-texte;
-  font-size: 0.6em;
+.reveal .slides section#title-slide .quarto-title-authors {
+  border-top: 1px solid $encre;
+  padding-top: 0.6em;
   justify-content: flex-start;
 }
+.reveal .slides section#title-slide .quarto-title-author-name {
+  color: $clair-texte-discret;
+  font-size: 0.55em;
+}
 
-// Titres de slide : filet cyan court sous le titre.
+// Titres de slide : serif, sans ornement.
 .reveal .slides section.slide.level2 > h2 {
-  margin-bottom: 0.35em;
-}
-.reveal .slides section.slide.level2 > h2::after {
-  content: "";
-  display: block;
-  width: 1.4em;
-  height: 0.09em;
-  margin-top: 0.22em;
-  background: $accent;
+  margin-bottom: 0.45em;
 }
 
-// Partie en cours (filtre parties.lua) : étiquette au-dessus du titre et barre
-// de progression découpée en autant de segments que le module a de parties.
+// Partie en cours (filtre parties.lua) : repère en petites capitales au-dessus du
+// titre et barre fine découpée en autant de segments que le module a de parties.
 .reveal .slides section.slide.level2[data-partie]::before {
   content: attr(data-partie);
   display: block;
-  font-size: 0.45em;
-  font-weight: bold;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: $accent;
-  margin-bottom: 0.15em;
+  @include petites-capitales;
+  font-size: 0.58em;
+  color: $gris-texte;
+  margin-bottom: 0.05em;
 }
 .reveal .slides section.slide.level2[data-partie] > h2::before {
   content: "";
   position: absolute;
-  top: -0.4em;
+  top: -0.35em;
   left: 0;
   right: 0;
-  height: 0.12em;
+  height: 2px;
   background: linear-gradient(
     to right,
-    $accent calc(var(--partie) / var(--parties) * 100%),
+    $bleu calc(var(--partie) / var(--parties) * 100%),
     $gris-filet 0
   );
   -webkit-mask-image: repeating-linear-gradient(
     to right,
-    black 0 calc(100% / var(--parties) - 0.4em),
+    black 0 calc(100% / var(--parties) - 0.3em),
     transparent 0 calc(100% / var(--parties))
   );
   mask-image: repeating-linear-gradient(
     to right,
-    black 0 calc(100% / var(--parties) - 0.4em),
+    black 0 calc(100% / var(--parties) - 0.3em),
     transparent 0 calc(100% / var(--parties))
   );
 }
@@ -128,10 +120,16 @@ $presentation-h2-font-size: 1.3em;
   font-size: 0.42em !important;
   color: $gris-texte !important;
   background: transparent !important;
+  font-variant-numeric: tabular-nums;
 }
 .reveal .progress {
-  color: $accent;
-  height: 3px;
+  color: $bleu;
+  height: 2px;
+}
+
+// Puces et numéros de liste dans le bleu des repères.
+.reveal .slides li::marker {
+  color: $bleu;
 }
 
 // Ouverture de module (decks de séance) et objectifs du module.
@@ -139,28 +137,18 @@ $presentation-h2-font-size: 1.3em;
   text-align: left;
 }
 .reveal .slides section.titre-module h1 {
-  color: $nuit;
-  font-size: 1.8em;
+  color: $encre;
+  font-size: 1.75em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid $encre;
 }
 .reveal .slides section.titre-module h1::before {
   content: "Module";
   display: block;
-  font-size: 0.28em;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: $accent;
-  margin-bottom: 0.4em;
-}
-.reveal .slides section.titre-module h1::after {
-  content: "";
-  display: block;
-  width: 0.9em;
-  height: 0.07em;
-  margin-top: 0.25em;
-  background: $accent;
-}
-.reveal .slides section.objectifs-module li::marker {
-  color: $accent;
+  @include petites-capitales;
+  font-size: 0.33em;
+  color: $bleu;
+  margin-bottom: 0.5em;
 }
 
 // Figures en colonnes : Quarto fixe largeur et hauteur de l'image ; réduite à la
@@ -192,7 +180,7 @@ $presentation-h2-font-size: 1.3em;
   box-sizing: border-box;
 }
 .reveal .slides .columns > .column + .column {
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid $gris-filet;
   padding-left: 0.8em;
 }
 .reveal .slides .columns > .column:not(:last-child) {
@@ -234,56 +222,50 @@ $presentation-h2-font-size: 1.3em;
   object-fit: contain;
 }
 
-// Liste numérotée de synthèse (`::: {.a-retenir}` autour d'une liste 1. 2. 3.).
+// Liste numérotée de synthèse (`::: {.a-retenir}` autour d'une liste 1. 2. 3.) :
+// numéros en serif dans la marge, filets fins entre les points.
 .reveal .slides .a-retenir ol {
   list-style: none;
   counter-reset: point;
   margin: 0;
   padding: 0;
   font-size: 0.82em;
+  border-top: 1px solid $encre;
 }
 .reveal .slides .a-retenir li {
   counter-increment: point;
   position: relative;
-  padding: 0.45em 0.6em 0.45em 2.6em;
-  margin-bottom: 0.4em;
-  background: #f4f6f9;
-  border-radius: 10px;
+  padding: 0.5em 0 0.5em 2em;
+  margin: 0;
+  border-bottom: 1px solid $gris-filet;
   line-height: 1.3;
 }
 .reveal .slides .a-retenir li::before {
   content: counter(point);
   position: absolute;
-  left: 0.6em;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1.45em;
-  height: 1.45em;
-  line-height: 1.45em;
-  border-radius: 50%;
-  background: $nuit;
-  color: white;
-  font-weight: bold;
-  text-align: center;
-  font-size: 0.9em;
+  left: 0.2em;
+  top: 0.5em;
+  font-family: $police-titres;
+  font-weight: 600;
+  color: $bleu;
+  font-variant-numeric: lining-nums;
 }
 
 // Mise en garde compacte, sous un schéma (`::: {.attention}`).
 .reveal .slides .attention {
   font-size: 0.7em;
   margin-top: 0.5em;
-  padding: 0.35em 0.7em 0.35em 2.2em;
+  padding: 0.3em 0.7em 0.3em 2.1em;
   position: relative;
-  background: #fff8eb;
-  border-left: 5px solid #f0a020;
-  border-radius: 0 6px 6px 0;
-  color: #3b3b3b;
+  background: #fbf6ec;
+  border-left: 3px solid #b7791f;
+  color: $clair-texte;
 }
 .reveal .slides .attention::before {
   content: "⚠";
   position: absolute;
   left: 0.65em;
-  color: #d98a00;
+  color: #b7791f;
 }
 .reveal .slides .attention p {
   margin: 0;
@@ -361,10 +343,9 @@ $marques: (
   font-size: 0.38em;
   line-height: 1.35;
   padding: 0.35em 0.7em;
-  background: #f1f5f9;
-  border-left: 4px solid $gris-texte;
-  border-radius: 0 6px 6px 0;
-  color: #475569;
+  background: $clair-surface-2;
+  border-left: 2px solid $gris-texte;
+  color: $clair-texte-discret;
 }
 .reveal .slides .sigles ul {
   list-style: none;
@@ -387,7 +368,7 @@ $marques: (
 .reveal .slides table.carnet td {
   padding: 0.35em 0.6em;
   text-align: center;
-  border: 1px solid #cbd5e1;
+  border: 1px solid $gris-filet;
   line-height: 1.25;
 }
 .reveal .slides table.carnet thead tr:first-child th {
@@ -403,7 +384,7 @@ $marques: (
 .reveal .slides table.carnet thead tr + tr th {
   font-weight: normal;
   font-size: 0.85em;
-  color: #475569;
+  color: $clair-texte-discret;
 }
 .reveal .slides table.carnet th.achat,
 .reveal .slides table.carnet td.achat {
@@ -417,5 +398,5 @@ $marques: (
   height: 1.6em;
   font-size: 1.1em;
   font-weight: bold;
-  color: #1e293b;
+  color: $encre;
 }

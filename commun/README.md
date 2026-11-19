@@ -6,10 +6,11 @@
 |---|---|
 | `_macros.qmd` | Notations mathématiques (macros LaTeX). Inclus en tête de chaque chapitre et de chaque deck généré. |
 | `biblio.bib` | Bibliographie unique, une entrée par référence avec DOI ou lien. |
-| `charte.scss` | Charte : couleurs et police de tous les rendus (slides, poly, outils, accueil React). Seule source. |
-| `site.scss` | Thème HTML du poly et des outils (mode clair), en-tête aligné sur celui de l'accueil. |
+| `charte.scss` | Charte : couleurs et polices de tous les rendus (slides, poly, outils, accueil React). Seule source. |
+| `polices/` | Source Serif 4 (titres) et Source Sans 3 (texte), licence OFL, déclarées par `polices.css` (option `css` des profils) et par `accueil/src/style.scss`. |
+| `site.scss` | Thème HTML du poly et des outils (mode clair), en-tête aligné sur celui de l'accueil. Styles communs des outils OJS : onglets, boutons, champs, police des graphiques Observable Plot. |
 | `site-sombre.scss` | Mode sombre du poly. |
-| `logo.svg` | Logo de l'en-tête et icône d'onglet de tous les rendus HTML. |
+| `logo.svg` | Logo de l'en-tête et icône d'onglet de tous les rendus HTML (petit carré bleu de la charte). |
 | `slides.scss` | Thème des slides, dont les bandeaux de la vue auteur. |
 | `filtres/parties.lua` | Parties d'un module (`## Titre {partie="…"}`) : étiquette au-dessus du titre, barre de progression par partie. |
 | `filtres/marques.lua` | Marques `.approfondissement`, `.formel`, `.rappel` des slides. |
@@ -50,11 +51,13 @@ Classes définies dans `slides.scss`, à utiliser dans les `slides.qmd` :
 | `.a-retenir` | liste numérotée de la slide « À retenir » qui clôt chaque module |
 | `.transport`, `.distribution`, `.concurrence` | titre en gras coloré comme `pyelec.schema.ACCENTS` |
 
-Charte (`charte.scss`) : bleu nuit (`$nuit`), bleu des titres (`$bleu`), accent cyan (`$accent`) réservé à
-l'habillage (filets sous les titres, étiquettes de partie, progression). L'accent
-ne reprend aucune couleur des schémas ni des filières : il ne porte aucun sens.
-Slide de titre sur fond bleu nuit avec un réseau en filigrane ; pied de page avec
-le titre du deck (champ `footer` posé par `ecoelec generer`).
+Charte (`charte.scss`), registre « note de recherche » : titres en serif
+(`$police-titres`) à l'encre (`$encre`), texte en sans (`$police`), un seul bleu
+(`$bleu`) réservé aux repères (cours, module, partie, progression, puces) et aux
+liens. Le bleu ne reprend aucune couleur des schémas ni des filières : il ne porte
+aucun sens. Repères en petites capitales, filets fins à l'encre, pas de coins
+arrondis ni d'ombres. Slide de titre sur fond blanc, filet pleine largeur au-dessus
+de l'auteur. Pied de page avec le titre du deck (champ `footer` posé par `ecoelec generer`).
 
 Parties : `## Titre {partie="Système physique"}` ouvre une partie, qui vaut pour
 les slides suivantes du module ; chaque slide affiche alors l'étiquette de la
@@ -92,3 +95,17 @@ tout le site. Les outils restent en mode clair : les couleurs de leurs graphique
 En-tête : la barre de navigation du poly et des outils (`_quarto-poly.yml`,
 `_quarto-outils.yml`) et l'en-tête de l'accueil (`accueil/src/App.jsx`) ont les
 mêmes entrées (Parcours, Modules, Outils, Poly) : les modifier ensemble.
+
+## Polices
+
+Fichiers variables du dépôt google/fonts (`ofl/sourceserif4/SourceSerif4[opsz,wght].ttf`,
+`ofl/sourcesans3/SourceSans3[wght].ttf` et son italique), réduits pour garder le
+latin, les indices et exposants (CO₂), le grec, les flèches et les opérateurs :
+
+```sh
+uvx --from 'fonttools[woff]' pyftsubset SourceSans3[wght].ttf --flavor=woff2 \
+  --layout-features='*' --output-file=commun/polices/source-sans-3.woff2 \
+  --unicodes="U+0000-00FF,U+0131,U+0152-0153,U+0178,U+02C6,U+02DA,U+02DC,U+0300-0308,U+0391-03C9,U+2000-206F,U+2070-209F,U+20AC,U+2122,U+2190-2199,U+2200-22FF,U+FEFF,U+FFFD"
+```
+
+Les figures matplotlib et le PDF du poly gardent leurs polices propres.

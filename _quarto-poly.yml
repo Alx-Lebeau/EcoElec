@@ -61,6 +61,7 @@ format:
       light: [cosmo, commun/site.scss, commun/charte.scss]
       dark: [cosmo, commun/site.scss, commun/site-sombre.scss, commun/charte.scss]
     respect-user-color-scheme: true
+    css: commun/polices/polices.css
     toc-depth: 3
   pdf:
     documentclass: scrbook

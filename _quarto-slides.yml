@@ -24,6 +24,7 @@ format:
   revealjs:
     author: Alexis Lebeau
     theme: [default, commun/slides.scss, commun/charte.scss] # charte en dernier : voir commun/README.md
+    css: commun/polices/polices.css
     width: 1280
     height: 720
     margin: 0.06
@@ -34,5 +35,3 @@ format:
     preview-links: auto
     fig-width: 8
     fig-height: 4.5
-    title-slide-attributes:
-      data-background-color: "#1e293b"

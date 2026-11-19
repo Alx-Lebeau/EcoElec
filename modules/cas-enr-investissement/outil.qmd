@@ -414,15 +414,9 @@ capacité solaire qui minimise le coût total.
 ```{=html}
 <style>
 .resultats td:not(:first-child), .resultats th:not(:first-child) { text-align: right; }
-.resultats tr.section td { font-weight: 600; background: #f3f4f6; }
+.resultats tr.section td { font-weight: 600; background: var(--bs-tertiary-bg); }
 .resultats td, .resultats th { padding: 0.2rem 0.6rem; }
 .resultats td:not(:first-child), .resultats th:not(:first-child) { min-width: 6.5em; }
 .legende { font-size: 0.9rem; }
-form:has(> button.btn-quarto) { display: flex; flex-wrap: wrap; gap: 0.4rem; width: auto; margin-bottom: 0.6rem; }
-form > button.btn-quarto {
-  background: #fff; color: #1f2937; border: 1px solid #9ca3af; border-radius: 4px;
-  font-size: 0.85rem; padding: 0.25rem 0.7rem; margin: 0; white-space: nowrap;
-}
-form > button.btn-quarto:hover { background: #eef1f5; color: #1f2937; }
 </style>
 ```

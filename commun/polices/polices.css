@@ -1,0 +1,29 @@
+/* Polices de la charte (commun/charte.scss), versionnées pour que les rendus
+   fonctionnent hors connexion. Licence SIL Open Font License 1.1 (OFL-*.txt).
+   Fichiers variables du dépôt google/fonts (ofl/sourceserif4, ofl/sourcesans3),
+   réduits avec pyftsubset au latin, aux indices et exposants (CO₂, m²), au grec,
+   aux flèches et aux opérateurs mathématiques. Commande dans commun/README.md. */
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("source-serif-4.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("source-sans-3.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("source-sans-3-italique.woff2") format("woff2");
+}

@@ -6,13 +6,15 @@
 // Variables de la charte : charte.scss, listé en dernier.
 
 $font-family-sans-serif: $police !default;
+$headings-font-family: $police-titres !default;
+$headings-font-weight: 600 !default;
 $font-family-monospace: $police-mono !default;
 
 $primary: $bleu !default;
 $body-bg: $clair-surface !default;
 $body-color: $clair-texte !default;
 $link-color: $bleu !default;
-$headings-color: $bleu !default;
+$headings-color: $encre !default;
 $border-color: $gris-filet !default;
 $texte-discret: $clair-texte-discret !default;
 $surface-2: $clair-surface-2 !default;
@@ -30,7 +32,7 @@ h1,
 h2,
 h3,
 .title {
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 
 // En-tête : même habillage que celui de l'accueil (accueil/src/style.css)
@@ -47,7 +49,8 @@ h3,
 
 #quarto-header .navbar-title {
   color: $body-color;
-  font-weight: 650;
+  font-family: $police-titres;
+  font-weight: 600;
 }
 
 #quarto-header .navbar-logo {
@@ -57,7 +60,7 @@ h3,
 }
 
 #quarto-header .navbar-nav .nav-link {
-  border-radius: 8px;
+  border-radius: 4px;
   font-weight: 500;
   padding-left: 10px;
   padding-right: 10px;
@@ -79,5 +82,86 @@ main a:hover {
 
 // Encadrés « Formalisation » (voir commun/filtres/formalisation.lua)
 .callout.formalisation {
-  border-left-color: $accent;
+  border-left-color: $primary;
+}
+
+// ---------------------------------------------------------------------------
+// Outils interactifs (OJS) : onglets, boutons et graphiques Observable Plot
+// ---------------------------------------------------------------------------
+
+// Onglets : soulignés, sans coins arrondis.
+.panel-tabset .nav-tabs {
+  border-bottom: 1px solid $border-color;
+}
+.panel-tabset .nav-tabs .nav-link {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: $texte-discret;
+  font-weight: 500;
+}
+.panel-tabset .nav-tabs .nav-link:hover {
+  color: $body-color;
+}
+.panel-tabset .nav-tabs .nav-link.active {
+  background: transparent;
+  color: $body-color;
+  border-bottom-color: $primary;
+}
+.panel-tabset .tab-content {
+  border: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+// Boutons d'Inputs.button (scénarios) : discrets, en ligne.
+form:has(> button.btn-quarto) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: auto;
+  margin-bottom: 0.6rem;
+}
+form > button.btn-quarto {
+  background: transparent;
+  color: $body-color;
+  border: 1px solid $border-color;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.7rem;
+  margin: 0;
+  white-space: nowrap;
+}
+form > button.btn-quarto:hover {
+  background: $surface-2;
+  border-color: $texte-discret;
+  color: $body-color;
+}
+
+// Contrôles OJS (curseurs, cases) : police et couleur de la charte.
+[class^="oi-"] {
+  font-family: $font-family-sans-serif !important;
+  --theme-foreground-focus: #{$primary};
+}
+[class^="oi-"] input[type="number"],
+[class^="oi-"] input[type="text"],
+[class^="oi-"] select {
+  border: 1px solid $border-color;
+  border-radius: 3px;
+  background: $body-bg;
+  color: $body-color;
+}
+input[type="range"] {
+  accent-color: $primary;
+}
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: $primary;
+}
+
+// Graphiques Observable Plot : police de la charte (Plot impose system-ui).
+svg[class^="plot-"],
+figure[class^="plot-"] {
+  font-family: $font-family-sans-serif !important;
+  font-size: 12px;
 }

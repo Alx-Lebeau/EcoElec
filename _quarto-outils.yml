@@ -38,5 +38,6 @@ format:
     # un fond clair (traits, aplats, tableaux). Mode sombre à ajouter quand ils
     # suivront le thème.
     theme: [cosmo, commun/site.scss, commun/charte.scss]
+    css: commun/polices/polices.css
     page-layout: full
     toc: false

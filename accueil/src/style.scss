@@ -1,8 +1,32 @@
-// Thème de l'accueil. Couleurs et police : charte commune à tous les rendus
+// Thème de l'accueil. Couleurs et polices : charte commune à tous les rendus
 // (commun/charte.scss), comme le poly, les outils et les slides. Les couleurs
 // propres à l'accueil (étiquettes des options) sont définies ici.
 @use "sass:meta";
 @use "../../commun/charte" as *;
+
+// Polices de la charte (mêmes déclarations que commun/polices/polices.css,
+// chemins relatifs à ce fichier pour que Vite les copie dans le build).
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../../commun/polices/source-serif-4.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../../commun/polices/source-sans-3.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../../commun/polices/source-sans-3-italique.woff2") format("woff2");
+}
 
 @mixin sombre {
   --bg: #{$sombre-fond};
@@ -13,28 +37,26 @@
   --muted: #{$sombre-texte-discret};
   --link: #{$sombre-lien};
   --heading: #{$sombre-texte};
-  --primary-bg: #{$accent-clair};
+  --accent: #{$sombre-lien};
+  --rule: #{$sombre-texte};
+  --primary-bg: #{$sombre-lien};
   --primary-text: #{$sombre-fond};
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
-  --shadow-hover: 0 8px 28px rgb(0 0 0 / 0.45);
-  --tag-bg: #{$nuit};
-  --tag-text: #cbd5e1;
-  --tag-appro-bg: #134e4a;
-  --tag-appro-text: #99f6e4;
-  --tag-formel-bg: #2e1065;
-  --tag-formel-text: #ddd6fe;
-  --tag-outil-bg: #164e63;
-  --tag-outil-text: #a5f3fc;
-  --tag-ebauche-bg: #451a03;
-  --tag-ebauche-text: #fde68a;
+  --tag-bg: #{$sombre-surface-2};
+  --tag-text: #{$sombre-texte-discret};
+  --tag-appro-bg: #1c2b24;
+  --tag-appro-text: #a6cdb5;
+  --tag-formel-bg: #262236;
+  --tag-formel-text: #c6bce3;
+  --tag-outil-bg: #1d2636;
+  --tag-outil-text: #a9bde0;
+  --tag-ebauche-bg: #2e2614;
+  --tag-ebauche-text: #e3c98f;
   color-scheme: dark;
 }
 
 :root {
-  --nuit: #{$nuit};
-  --accent: #{$accent};
-  --accent-clair: #{$accent-clair};
-  --bleu: #{$bleu};
+  --accent: #{$bleu};
+  --rule: #{$encre};
 
   --bg: #{$clair-fond};
   --surface: #{$clair-surface};
@@ -43,25 +65,24 @@
   --text: #{$clair-texte};
   --muted: #{$clair-texte-discret};
   --link: #{$bleu};
-  --heading: #{$bleu};
+  --heading: #{$encre};
   --primary-bg: #{$bleu};
   --primary-text: #ffffff;
-  --shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 4px 16px rgb(15 23 42 / 0.06);
-  --shadow-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 12px 32px rgb(15 23 42 / 0.1);
 
   --tag-bg: #{$clair-surface-2};
-  --tag-text: #334155;
-  --tag-appro-bg: #ccfbf1;
-  --tag-appro-text: #115e59;
-  --tag-formel-bg: #ede9fe;
-  --tag-formel-text: #5b21b6;
-  --tag-outil-bg: #cffafe;
-  --tag-outil-text: #155e75;
-  --tag-ebauche-bg: #fef3c7;
-  --tag-ebauche-text: #92400e;
+  --tag-text: #{$clair-texte-discret};
+  --tag-appro-bg: #e7f0ea;
+  --tag-appro-text: #2f5d46;
+  --tag-formel-bg: #eeebf5;
+  --tag-formel-text: #4b3b78;
+  --tag-outil-bg: #e9eef6;
+  --tag-outil-text: #{$bleu};
+  --tag-ebauche-bg: #f7f0de;
+  --tag-ebauche-text: #7a5410;
 
-  --radius: 14px;
+  --radius: 4px;
   --font: #{meta.inspect($police)};
+  --font-titres: #{meta.inspect($police-titres)};
   --mono: #{meta.inspect($police-mono)};
   color-scheme: light;
 }
@@ -121,9 +142,20 @@ h1,
 h2,
 h3 {
   color: var(--heading);
-  line-height: 1.25;
+  font-family: var(--font-titres);
+  font-weight: 600;
+  line-height: 1.2;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+// Repère en petites capitales (cours, module, rubrique), comme sur les slides.
+@mixin petites-capitales {
+  font-variant: small-caps;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 code {
@@ -180,7 +212,9 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-weight: 650;
+  font-family: var(--font-titres);
+  font-weight: 600;
+  font-size: 1.0625rem;
   color: var(--text);
 }
 
@@ -203,7 +237,7 @@ code {
 
 .nav a {
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: 4px;
   color: var(--muted);
   font-size: 0.9375rem;
   font-weight: 500;
@@ -223,7 +257,7 @@ code {
   height: 36px;
   margin-left: 4px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--surface);
   color: var(--muted);
   cursor: pointer;
@@ -244,92 +278,53 @@ code {
   }
 }
 
-/* ---- Bandeau d'accueil : fond nuit et filet cyan, comme la slide de titre ---- */
+/* ---- Bandeau d'accueil : comme la slide de titre (repère, titre serif, filet) ---- */
 
 .hero {
-  position: relative;
-  overflow: hidden;
-  background: var(--nuit);
-  color: #e2e8f0;
-}
-
-.hero::before {
-  /* Réseau maillé en filigrane */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgb(34 211 238 / 0.18) 1px, transparent 1.5px),
-    linear-gradient(115deg, transparent 55%, rgb(8 145 178 / 0.25));
-  background-size:
-    28px 28px,
-    100% 100%;
-  mask-image: linear-gradient(90deg, transparent 30%, #000);
-  pointer-events: none;
+  background: var(--surface);
 }
 
 .hero-inner {
-  position: relative;
-  padding-top: 64px;
-  padding-bottom: 56px;
+  padding-top: 72px;
+  padding-bottom: 48px;
 }
 
 .eyebrow {
   margin: 0 0 8px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 1rem;
   color: var(--accent);
+  @include petites-capitales;
 }
 
 .hero .eyebrow {
-  color: var(--accent-clair);
+  margin-bottom: 14px;
 }
 
 .hero h1 {
-  color: #fff;
-  font-size: clamp(2rem, 5vw, 3.25rem);
-  max-width: 16ch;
-}
-
-.hero h1::after {
-  content: "";
-  display: block;
-  width: 72px;
-  height: 4px;
-  margin-top: 18px;
-  border-radius: 2px;
-  background: var(--accent-clair);
+  font-size: clamp(2.25rem, 5.5vw, 3.5rem);
+  line-height: 1.08;
+  max-width: 18ch;
 }
 
 .hero-subtitle {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   font-size: 1.25rem;
-  color: #cbd5e1;
+  color: var(--muted);
 }
 
 .hero-text {
-  max-width: 60ch;
-  margin: 12px 0 0;
-  color: #94a3b8;
+  max-width: 62ch;
+  margin: 28px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 28px;
+  margin-top: 24px;
 }
-
-.hero .action-primary {
-  background: var(--accent-clair);
-  color: var(--nuit);
-  border-color: var(--accent-clair);
-}
-
-
-
-
 
 /* ---- Boutons et étiquettes ---- */
 
@@ -339,7 +334,7 @@ code {
   gap: 8px;
   padding: 8px 14px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -370,14 +365,7 @@ code {
 }
 
 .action-ghost {
-  background: rgb(255 255 255 / 0.06);
-  border-color: rgb(255 255 255 / 0.18);
-  color: #e2e8f0;
-}
-
-.action-ghost:hover {
-  background: rgb(255 255 255 / 0.12);
-  border-color: rgb(255 255 255 / 0.35);
+  background: transparent;
 }
 
 .tags {
@@ -390,8 +378,8 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 9px;
-  border-radius: 999px;
+  padding: 1px 8px;
+  border-radius: 3px;
   background: var(--tag-bg);
   color: var(--tag-text);
   font-size: 0.8125rem;
@@ -425,12 +413,12 @@ code {
   display: inline-grid;
   place-items: center;
   min-width: 44px;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: var(--nuit);
-  color: var(--accent-clair);
-  font-weight: 700;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 3px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  font-weight: 600;
   font-size: 0.9375rem;
   font-variant-numeric: tabular-nums;
 }
@@ -487,7 +475,6 @@ code {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   padding: 20px;
 }
 
@@ -499,17 +486,12 @@ code {
 .card-link {
   display: flex;
   color: inherit;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s,
-    border-color 0.15s;
+  transition: border-color 0.15s;
 }
 
 .card-link:hover {
   text-decoration: none;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-color: var(--accent);
 }
 
 .card-link h3 {
@@ -544,11 +526,12 @@ code {
 }
 
 .module-number {
-  font-family: var(--mono);
-  font-size: 0.875rem;
+  font-family: var(--font-titres);
+  font-size: 1.125rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--accent);
-  padding-top: 2px;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .module-card-body {
@@ -572,7 +555,7 @@ code {
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--tag-outil-bg);
   color: var(--tag-outil-text);
 }
@@ -620,7 +603,7 @@ code {
   margin-top: 8px;
   padding: 10px 12px;
   border: 1px dashed var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 0.875rem;
   max-width: 100%;
 }
@@ -655,10 +638,13 @@ code {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
+  border: 1px solid var(--accent);
   border-radius: 50%;
-  background: var(--nuit);
-  color: var(--accent-clair);
-  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-titres);
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: lining-nums;
 }
 
 .session-title {
@@ -688,8 +674,8 @@ code {
 
 .timing-bar {
   flex: 0 1 160px;
-  height: 6px;
-  border-radius: 3px;
+  height: 4px;
+  border-radius: 0;
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -697,7 +683,6 @@ code {
 .timing-bar span {
   display: block;
   height: 100%;
-  border-radius: 3px;
   background: var(--accent);
 }
 
@@ -710,11 +695,9 @@ code {
 
 .session-subtitle {
   margin: 20px 0 8px 56px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 0.9375rem;
   color: var(--muted);
+  @include petites-capitales;
 }
 
 .session-modules {

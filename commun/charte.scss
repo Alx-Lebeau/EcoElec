@@ -1,39 +1,40 @@
 /*-- scss:defaults --*/
 
-// Charte du cours : seule source des couleurs et de la police de tous les rendus.
+// Charte du cours : seule source des couleurs et des polices de tous les rendus.
 //   slides.scss (slides), site.scss et site-sombre.scss (poly, outils),
-//   accueil/src/style.css (accueil React, via accueil/src/charte.scss).
+//   accueil/src/style.scss (accueil React).
 // Couche de thème Quarto à lister APRÈS les autres fichiers .scss du cours
 // (theme: [cosmo, commun/site.scss, commun/charte.scss]) : Quarto empile les couches
 // scss:defaults en ordre inverse, ses variables sont donc déclarées en premier.
 //
-// L'accent cyan ne porte aucun sens : il est réservé à l'habillage (filets,
-// étiquettes, progression) et ne reprend aucune couleur des schémas ni des filières.
-// Polices système uniquement : aucun appel réseau, rendus utilisables hors connexion.
+// Registre « note de recherche » : titres en serif, texte en sans, un seul bleu
+// encre pour les repères et les liens. Le bleu ne reprend aucune couleur des schémas
+// ni des filières : il ne porte aucun sens.
+// Polices versionnées dans commun/polices/ (licence OFL), déclarées par
+// commun/polices/polices.css : aucun appel réseau, rendus utilisables hors connexion.
 
-$police: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$police: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$police-titres: "Source Serif 4", Georgia, "Times New Roman", serif;
 $police-mono: ui-monospace, "SF Mono", Consolas, monospace;
 
 // Couleurs de la charte
-$nuit: #1e293b; // fonds sombres d'habillage (slide de titre, bandeau de l'accueil)
-$bleu: #1f4e79; // titres et liens
-$accent: #0891b2; // filets, étiquettes, progression
-$accent-clair: #22d3ee; // accent sur fond nuit
-$gris-filet: #e2e8f0;
-$gris-texte: #94a3b8;
+$encre: #111827; // titres
+$bleu: #1f3a68; // repères (module, partie, progression), liens
+$gris-filet: #e3e6eb;
+$gris-texte: #6b7280;
 
 // Mode clair
-$clair-fond: #f8fafc;
+$clair-fond: #ffffff;
 $clair-surface: #ffffff;
-$clair-surface-2: #f1f5f9;
-$clair-texte: #0f172a;
-$clair-texte-discret: #64748b;
+$clair-surface-2: #f4f5f7;
+$clair-texte: #1c2230;
+$clair-texte-discret: #5d6573;
 
 // Mode sombre
-$sombre-fond: #0b1120;
-$sombre-surface: #131c2e;
-$sombre-surface-2: #1a2438;
-$sombre-filet: #253047;
-$sombre-texte: #e2e8f0;
-$sombre-texte-discret: #94a3b8;
-$sombre-lien: #7dd3fc;
+$sombre-fond: #121419;
+$sombre-surface: #181b21;
+$sombre-surface-2: #21252d;
+$sombre-filet: #2c313b;
+$sombre-texte: #e4e6ea;
+$sombre-texte-discret: #9ca3af;
+$sombre-lien: #a9bde0;
