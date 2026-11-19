@@ -23,6 +23,10 @@ solaire = case_study.solar_option()
 fc_solaire = cas.solar_cf.mean()
 capacite_solaire = case_study.solar_capacity()
 niveaux = case_study.solar_levels()
+cas0 = cas.with_co2(case_study.CO2_START)
+base0 = case_study.base_technology(cas0)
+prix_co2 = cas.attrs["prix_co2"]
+prix_gaz_choc = case_study.gas_price(case_study.GAS_SHOCK_YEAR)
 reference = case_study.optimal_fleet(cas)
 illustration = case_study.optimal_fleet(cas, niveaux[0])
 horaire = case_study.dispatch(cas, reference)
@@ -34,6 +38,12 @@ source_eco2mix = "RTE, éCO2mix"
 def kilo(x):
     """Coût fixe annuel en k€/MW/an, mis en forme."""
     return number(x / 1000)
+
+
+def duree_equilibre(c, a, b):
+    """Durée de fonctionnement (h/an) où les filières a et b coûtent autant."""
+    ra, rb = c.options.loc[a], c.options.loc[b]
+    return (rb.cout_fixe - ra.cout_fixe) / (ra.cout_variable - rb.cout_variable)
 ```
 
 **Que change l'arrivée du solaire dans un système électrique ?**
@@ -42,9 +52,9 @@ def kilo(x):
 ::: {.column width="50%"}
 **Trois leviers étudiés**
 
-- un **prix du CO₂**, qui renchérit les centrales au gaz
-- du **solaire hors marché**, installé grâce à une subvention
-- du **solaire sans subvention**, quand il devient compétitif
+- un **prix du CO₂**, d'un parc carboné vers un parc décarboné
+- du solaire décidé par **appels d'offres** : pilotage par les quantités
+- du solaire décidé par le **marché** : signal prix
 :::
 ::: {.column width="50%"}
 **Trois effets à mesurer**
@@ -52,6 +62,7 @@ def kilo(x):
 - sur le **parc** : combien de MW de chaque filière
 - sur les **prix** de gros
 - sur les **revenus** des producteurs : couvrent-ils leurs coûts ?
+- sur les **émissions** de CO₂
 :::
 ::::
 
@@ -61,6 +72,10 @@ travail en autonomie ou en binôme sur l'outil de simulation, question par quest
 
 Le cas prolonge directement le module long terme : mêmes filières, mêmes coûts,
 même courbe de charge, avec le solaire en plus.
+
+Progression : un monde sans prix du CO₂ (questions 1 et 2), l'arrivée du prix du CO₂
+(question 3), puis le solaire dans le parc décarboné, par les quantités (question 4)
+ou par les prix (question 5).
 :::
 
 ## Un système stylisé
@@ -137,7 +152,7 @@ d'exploitation.
 :::
 ::: {.column width="50%"}
 **Coût variable** des CCG et des TAC : prix du gaz et du CO₂ de `{python} annee`
-(`{python} number(cas.attrs["prix_co2"], 1)` €/t).
+(`{python} number(prix_co2, 1)` €/t).
 :::
 ::::
 
@@ -149,6 +164,10 @@ heures par an, le critère de défaillance français.
 Solaire au sol : coûts des projets retenus aux appels d'offres de la CRE jusqu'en juin
 2025 (investissement proche de 900 €/kWc, exploitation de 20 à 25 €/kWc/an). Même taux
 d'actualisation que les autres filières. Durée de vie de 30 ans retenue pour le cours.
+
+Le cas part d'un prix du CO₂ nul (question 1). Sans prix du CO₂, coût variable de `{python} number(cas0.options.loc["ccg", "cout_variable"])`
+€/MWh pour les CCG et de `{python} number(cas0.options.loc["tac", "cout_variable"])` €/MWh
+pour les TAC.
 
 Coût variable nul pour le solaire : pas de combustible. Il produit donc dès qu'il le
 peut, en premier dans le merit order.
@@ -262,17 +281,17 @@ sans contrainte, ce qui est optimiste (minimum technique, rampes).
 
 - capacités des quatre filières (GW)
 - coûts fixes et coût variable de chaque filière
-- prix du CO₂
+- prix du CO₂ et du gaz
 - profil du solaire : réel ou constant
 - bouton **« Parc optimal »** : calcule le parc qui minimise le coût total
 :::
 ::: {.column width="50%"}
 **Sorties**
 
-- production, écrêtement, délestage
-- coût total du système, émissions de CO₂
+- production, écrêtement, délestage, émissions
+- coût total du système
 - prix moyen, valeur de marché du solaire
-- rente inframarginale et profit de chaque filière
+- rente inframarginale, profit, flux du CfD
 - graphiques : *screening curves*, monotones, semaines types
 :::
 ::::
@@ -290,9 +309,9 @@ Outil en ligne, aussi accessible depuis la page du parcours et l'accueil du site
 cours. Trois onglets : la consommation (courbe chronologique et monotone), la méthode
 graphique (*screening curves* et monotone, avec du solaire), puis le modèle complet.
 
-Deux usages du bouton « Parc optimal » : avec la capacité solaire imposée (solaire
-hors marché, question 4) ou choisie par le calcul comme les autres filières (solaire
-sans subvention, question 5).
+Deux usages du bouton « Parc optimal » : avec la capacité solaire imposée (volume
+décidé par appels d'offres, question 4) ou choisie par le calcul comme les autres
+filières (signal prix, question 5).
 
 Comparer à une référence est le cœur de chaque question : effet d'un changement à
 parc donné (court terme), puis avec un parc adapté (long terme).
@@ -310,7 +329,9 @@ parc donné (court terme), puis avec un parc adapté (long terme).
 ::: {.column width="50%"}
 - **Prix moyen** : moyenne des prix horaires.
 - **Valeur de marché du solaire** : prix moyen pondéré par sa production.
-- **Subvention** : ce qui manque au solaire pour couvrir ses coûts, sur l'année.
+- **Émissions** : CO₂ émis par les CCG et les TAC, sur l'année.
+- **CfD du solaire** : flux annuel du contrat pour différence, versé au producteur
+  ou reversé par lui.
 :::
 ::::
 
@@ -328,6 +349,9 @@ servie moins le coût total.
 
 La valeur de marché du solaire est ce que touche un MWh solaire vendu sur le marché.
 Elle se compare au prix moyen et au LCOE du solaire.
+
+Émissions directes seulement : nulles pour le nucléaire et le solaire, hors cycle de
+vie. Le contrat pour différence est présenté dans la partie suivante.
 :::
 
 ## Le profit : le signal de l'investissement
@@ -382,36 +406,38 @@ pendant les heures de délestage.
 ```{python}
 #| classes: figure-colonne
 fig, ax = plt.subplots(figsize=(6.2, 4.3))
-case_study.co2_screening(ax, cas, case_study.CO2_PRICES[1])
+case_study.co2_screening(ax, cas0, prix_co2)
 style.add_source(fig, source_couts, str(annee))
 plt.show()
 ```
 :::
 ::: {.column width="44%"}
-Le CO₂ renchérit le coût variable des CCG et des TAC, pas celui du nucléaire : leurs
-droites se redressent.
+**Sans prix du CO₂**, le CCG est le moins cher pour toute durée : le parc optimal est
+entièrement au gaz.
 
-Le nucléaire devient le moins cher **dès moins d'heures** par an : il en faut plus
-dans le parc optimal.
+Le CO₂ renchérit les CCG et les TAC : leurs droites se redressent. Une base
+décarbonée devient la moins chère **au-delà de
+`{python} number(duree_equilibre(cas, "ccg", "nucleaire"))` heures** par an.
 
-À parc donné, les prix montent : le profit du nucléaire devient **positif**, signal
-pour investir.
+À parc donné, les prix montent : le profit d'une base décarbonée devient **positif**,
+signal pour investir.
 :::
 ::::
 
 ::: {.notes}
 Première intuition pour la question 3, sans les chiffres : le public les retrouve
-avec l'outil.
+avec l'outil. Trait plein : sans prix du CO₂. Tirets : prix de `{python} annee`.
 
-Lecture : le point de croisement entre CCG et nucléaire glisse vers la gauche. Sur la
-monotone, une durée d'équilibre plus courte correspond à une puissance plus haute :
-la tranche de base s'épaissit.
+Lecture : le croisement entre CCG et nucléaire apparaît puis glisse vers la gauche
+quand le prix du CO₂ monte. Sur la monotone, une durée d'équilibre plus courte
+correspond à une tranche de base plus épaisse.
 
-Court terme : le merit order ne change pas tant que le CCG reste plus cher que le
-nucléaire, donc la production non plus. Seuls les prix et les profits bougent.
+Court terme : le merit order ne change pas tant que l'ordre des coûts variables ne
+change pas, donc la production non plus. Seuls les prix, les profits et le coût des
+émissions bougent.
 :::
 
-## Le solaire réduit la base à construire
+## Le solaire change la consommation à servir
 
 :::: {.columns}
 ::: {.column width="56%"}
@@ -427,138 +453,229 @@ plt.show()
 Le parc pilotable se lit sur la **monotone résiduelle**, avec les mêmes durées
 d'équilibre.
 
-Le solaire abaisse surtout les heures de consommation moyenne : **moins de
-nucléaire**.
+Le solaire et la base répondent en partie au **même besoin** : de l'énergie à faible
+coût variable. La tranche de base s'amincit, quelle que soit sa filière.
 
-La pointe d'hiver, le soir, ne bouge presque pas : il faut toujours **presque autant de
-capacité pilotable**, qui tourne moins.
+Le soir en hiver, pas de soleil : il faut toujours **presque autant de capacité
+pilotable**, qui tourne moins.
 :::
 ::::
 
 ::: {.notes}
-Intuition pour les questions 4 et 5. Lecture : à la durée d'équilibre entre CCG et
-nucléaire, la monotone résiduelle passe plus bas que la monotone de consommation.
-L'écart donne la baisse de la capacité nucléaire optimale.
+Intuition pour les questions 4 et 5. Lecture : à la durée d'équilibre entre semi-base
+et base, la monotone résiduelle passe plus bas que la monotone de consommation.
+L'écart donne la baisse de la capacité de base optimale.
 
-Les CCG et les TAC prennent le relais de la base pendant les heures sans soleil : ils
-reculent peu, voire augmentent. Le solaire remplace de l'énergie, très peu de
-puissance garantie.
+Mécanisme générique : la base est le nucléaire ici, c'était le charbon dans
+d'autres versions du cas. Le résultat ne dit rien d'un « solaire contre nucléaire » :
+tous deux sont décarbonés, la question est celle du mix qui sert la consommation au
+moindre coût.
+
+Le modèle favorise le solaire : modulation de la base sans contrainte, ni stockage,
+ni échanges, ni coûts de réseau ou d'équilibrage. Le solaire remplace de l'énergie,
+très peu de puissance garantie.
 :::
 
-## Le solaire fait baisser sa propre valeur
+## La cannibalisation
 
 :::: {.columns}
 ::: {.column width="56%"}
 ```{python}
 #| classes: figure-colonne
-fig = plt.figure(figsize=(6.2, 4.3))
-case_study.solar_day_prices(fig, cas, reference, (0.0, niveaux[0], niveaux[1]), f"{annee}-04-16")
+fig, ax = plt.subplots(figsize=(6.2, 4.3))
+valeurs = case_study.solar_value_curve(ax, cas, reference)
 style.add_source(fig, f"Calcul du cours ; {source_eco2mix}", str(annee))
 plt.show()
 ```
 :::
 ::: {.column width="44%"}
-Tout le solaire produit **aux mêmes heures**. Il y remplace la filière la plus chère
-appelée, et fait baisser le prix précisément quand il vend.
+Tout le solaire produit **aux mêmes heures**. Il y remplace les filières les plus
+chères et fait baisser le prix précisément quand il vend.
 
-Plus il y a de solaire, plus sa **valeur de marché** baisse.
+Plus il y a de solaire, plus sa **valeur de marché** baisse : c'est la
+**cannibalisation**.
 
-Quand elle passe sous son coût complet, le solaire ne couvre plus ses coûts : il faut
-une **subvention** pour l'installer.
+Sous son coût complet, le solaire ne se finance plus par le marché seul.
 :::
 ::::
 
 ::: {.notes}
-Journée de printemps (`{python} annee`-04-16), parc pilotable de référence, sans
-adaptation : c'est l'effet de court terme. Les prix horaires du modèle sont des
-paliers, égaux au coût variable de la filière marginale.
+Valeur de marché : prix moyen pondéré par la production solaire. Trait plein : parc
+pilotable de référence, sans adaptation (court terme). Tirets : parc pilotable
+adapté à chaque capacité solaire (long terme).
 
-Effet appelé « cannibalisation » : chaque MW solaire ajouté réduit le revenu de tous
-les MW déjà installés. L'éolien connaît le même effet, moins marqué, car sa
-production est moins concentrée dans le temps.
+Chaque MW solaire ajouté réduit le revenu de tous les MW déjà installés. L'éolien
+connaît le même effet, moins marqué, car sa production est moins concentrée dans le
+temps. Stockage, flexibilité de la consommation et échanges l'atténuent : absents du
+modèle.
 
 Avec beaucoup de solaire, le prix tombe à zéro aux heures d'écrêtement.
 :::
 
-## Q1. Le parc de référence {partie="Consignes"}
+## Faire entrer le solaire : quantités ou prix {partie="Les instruments"}
 
-Sans solaire, avec les coûts de `{python} annee`.
+:::: {.columns}
+::: {.column width="50%"}
+**Signal prix**
+
+- le prix du CO₂ et les prix de gros guident l'investissement
+- les investisseurs choisissent la capacité
+- la quantité installée n'est pas garantie
+:::
+::: {.column width="50%"}
+**Pilotage par les quantités**
+
+- la puissance publique fixe un volume
+- attribué par **appels d'offres** ou enchères
+- les lauréats reçoivent un soutien : le prix d'enchère révèle leur coût
+:::
+::::
+
+::: {.attention}
+Plusieurs formes de soutien : obligation d'achat (*feed-in tariff*), complément de
+rémunération, contrat pour différence. Ce cas retient le **contrat pour différence**.
+:::
+
+::: {.notes}
+Question 4 : pilotage par les quantités. Question 5 : signal prix. La comparaison des
+deux est le cœur de la fin du cas.
+
+Obligation d'achat (*feed-in tariff*) : un prix fixe pour toute la production, quel
+que soit le marché. Simple, mais elle isole le producteur du marché et peut créer des
+distorsions : aucune incitation à produire quand le système en a le plus besoin, ni à
+s'arrêter quand les prix sont négatifs.
+
+Le contrat pour différence bidirectionnel laisse le producteur vendre sur le marché
+et règle l'écart avec un prix garanti. Il s'impose comme la bonne pratique, et c'est
+la direction prise par les dispositifs de soutien.
+:::
+
+## Le contrat pour différence : soutien et partage du risque
+
+:::: {.columns}
+::: {.column width="50%"}
+Le producteur vend sur le marché. Un **prix garanti** est fixé par l'enchère.
+
+- prix de marché **sous** le prix garanti : la contrepartie publique **verse**
+  l'écart
+- prix de marché **au-dessus** : le producteur **reverse** l'écart
+:::
+::: {.column width="50%"}
+Le producteur touche le prix garanti : revenus stables, financement moins cher.
+
+La collectivité porte le **risque de prix**, dans les deux sens. Un CfD n'est pas
+seulement une dépense : il peut **rendre de l'argent**.
+:::
+::::
+
+::: {.formel}
+$$
+\text{Flux CfD} = \textstyle\sum_t (K - \text{prix}_t) \times p_{\text{solaire},t}
+\quad \text{avec } K \text{ le prix garanti}
+$$
+:::
+
+::: {.notes}
+Dans le modèle, le prix garanti est le coût complet du solaire : celui qu'une enchère
+concurrentielle ferait apparaître. Sur l'année, le flux du CfD vaut alors l'opposé du
+profit du solaire.
+
+Variante de la question 4 : prix du gaz de `{python} case_study.GAS_SHOCK_YEAR`
+(`{python} number(prix_gaz_choc, 1)` €/MWh) avec le parc inchangé. Les prix de marché
+montent, le solaire vaut plus que son prix garanti, et le flux du CfD change de sens.
+Si le parc s'adaptait durablement à un gaz cher, il y aurait plus de base décarbonée
+et l'effet s'atténuerait : un choc imprévu n'est pas un nouvel équilibre.
+:::
+
+## Q1. Un monde sans prix du CO₂ {partie="Consignes"}
+
+Sans solaire, prix du CO₂ à `{python} number(case_study.CO2_START)` €/t, autres coûts de
+`{python} annee`.
 
 1. Sur les *screening curves*, lire les **durées d'équilibre** entre filières. Les
-   reporter sur la monotone de charge pour estimer le **parc optimal**.
+   reporter sur la monotone pour estimer le **parc optimal**.
 2. Lancer **« Parc optimal »** et comparer avec l'estimation.
-3. Relever le coût total, le délestage, le prix moyen, les profits. Pourquoi les profits
-   sont-ils nuls ?
+3. Relever le coût total, le délestage, le prix moyen, les émissions, les profits.
+   Pourquoi les profits sont-ils nuls ?
 4. **Figer ce résultat comme référence.**
 
 ::: {.notes}
-Prise en main de l'outil. Question 1 : reprise directe du module long terme, avec les
-mêmes données. Elle doit aller vite.
+Prise en main de l'outil : onglets « Consommation » et « Méthode graphique », puis
+« Modèle complet ». Sans prix du CO₂, le parc optimal est entièrement au gaz : point de
+départ d'une progression vers un parc décarboné.
 
-Le résultat figé sert de point de comparaison aux questions 2 à 4.
+Le résultat figé sert de point de comparaison aux questions 2 et 3.
 :::
 
 ## Q2. Un parc mal dimensionné
 
 Partir du parc de référence.
 
-1. Retirer `{python} number(case_study.NUCLEAR_CUT * 100)` % de la capacité nucléaire.
+1. Retirer `{python} number(case_study.BASE_CUT * 100)` % de la capacité de base
+   (`{python} label(base0)`).
 2. Comparer avec la référence : délestage, production de chaque filière, prix moyen,
    coût total, profits.
-3. Quel signal reçoivent les investisseurs ? Que se passerait-il avec trop de
-   nucléaire ?
+3. Quel signal reçoivent les investisseurs ? Que se passerait-il avec un parc trop
+   grand ?
 
 ::: {.notes}
 Objectif : relier le profit au déséquilibre du parc. Moins de capacité, plus d'heures
-à des prix élevés (CCG, TAC, VOLL) : les profits deviennent positifs pour toutes les
+à des prix élevés (TAC, VOLL) : les profits deviennent positifs pour toutes les
 filières, et le coût total augmente.
 :::
 
 ## Q3. Le prix du CO₂
 
-Partir du parc de référence (CO₂ à `{python} number(cas.attrs["prix_co2"], 1)` €/t).
+Partir du parc de référence.
 
-1. **Court terme** : passer le prix du CO₂ à
-   `{python} number(case_study.CO2_PRICES[0])` €/t, sans changer le parc. Comparer
-   avec la référence : prix, production, profits.
-2. **Long terme** : relancer « Parc optimal ». Comparer les capacités.
-3. Reprendre les deux étapes avec `{python} number(case_study.CO2_PRICES[1])` €/t.
+1. **Court terme** : passer le prix du CO₂ à `{python} number(prix_co2, 1)` €/t
+   (`{python} annee`), sans changer le parc. Comparer : prix, production, profits,
+   émissions.
+2. **Long terme** : relancer « Parc optimal ». Comparer les capacités et les émissions.
+3. Reprendre les deux étapes avec `{python} number(case_study.CO2_HIGH)` €/t.
 4. Retrouver le résultat sur les *screening curves*.
+5. Revenir à `{python} number(prix_co2, 1)` €/t, parc optimal : **le figer comme
+   nouvelle référence**.
 
 ::: {.notes}
-Le CO₂ renchérit le coût variable des CCG et des TAC, pas celui du nucléaire. Court
-terme : prix et profits bougent, production inchangée tant que l'ordre du merit order
-ne change pas. Long terme : le parc s'adapte, ses capacités changent nettement.
+Court terme : la production ne bouge pas, les prix et le coût des émissions montent.
+Long terme : une base décarbonée entre dans le parc, les émissions chutent. Le prix du
+CO₂ décarbone par le signal prix, sans choisir de technologie.
 
-Faire lire le déplacement des durées d'équilibre sur les *screening curves*.
+La référence à `{python} number(prix_co2, 1)` €/t sert aux questions 4 et 5.
 :::
 
-## Q4. Du solaire hors marché
+## Q4. Le solaire par appels d'offres
 
-Partir du parc de référence. Solaire de `{python} number(niveaux[0])`,
-`{python} number(niveaux[1])`, puis `{python} number(niveaux[2])` GW.
+Le volume est fixé : `{python} number(niveaux[0])`, `{python} number(niveaux[1])`, puis
+`{python} number(niveaux[2])` GW, soutenus par un contrat pour différence.
 
-1. **Court terme** : ajouter le solaire sans changer le reste du parc. Comparer :
-   production, écrêtement, prix moyen, profits.
-2. **Long terme** : relancer « Parc optimal » avec la capacité solaire imposée.
-   Quelles filières reculent ?
-3. **Subvention** : à partir du profit du solaire, estimer la subvention annuelle
-   (M€ et €/MWh consommé). Comparer la valeur de marché du solaire au prix moyen.
+1. **Court terme** : ajouter le solaire sans changer le reste du parc. Puis **long
+   terme** : « Parc optimal » avec la capacité solaire imposée.
+2. **Cannibalisation** : comparer la valeur de marché du solaire au prix moyen et à son
+   coût complet.
+3. **Flux du CfD** : montant annuel (M€ et €/MWh consommé).
+4. **Variante** : parc de `{python} number(niveaux[0])` GW inchangé, prix du gaz de
+   `{python} case_study.GAS_SHOCK_YEAR` (`{python} number(prix_gaz_choc, 1)` €/MWh).
+   Que devient le flux du CfD ? Qui porte le risque de prix ?
 
 ::: {.notes}
 `{python} number(niveaux[0])` GW : à peu près le parc solaire installé en France fin
-`{python} annee`. Solaire hors marché : sa capacité est décidée par une politique
-publique, pas par la rentabilité.
+`{python} annee`. Pilotage par les quantités : la capacité est décidée par la
+puissance publique, le marché ne choisit que le reste du parc.
 
-Points attendus : à court terme, le solaire fait baisser les prix et rend négatives
-les profits de toutes les filières (surcapacité). À long terme, le parc pilotable
-s'adapte et les prix remontent. La valeur de marché du solaire baisse quand sa
-capacité augmente : il produit tous en même temps.
+Points attendus : à court terme, le solaire fait baisser les prix et rend négatifs les
+profits des autres filières (surcapacité). À long terme, le parc pilotable s'adapte et
+les prix remontent. La cannibalisation creuse l'écart entre valeur de marché et coût
+complet.
 
-Unités : le profit est en k€/MW/an, la capacité en GW, la subvention en M€/an.
+Variante : avec un gaz cher, le CfD peut rendre de l'argent. Le CfD est un outil de
+soutien et de partage du risque, pas seulement une dépense.
+
+Unités : le profit est en k€/MW/an, la capacité en GW, le flux du CfD en M€/an.
 :::
 
-## Q5. Du solaire sans subvention
+## Q5. Le solaire par le signal prix
 
 Le solaire devient une option d'investissement comme les autres : « Parc optimal »
 choisit aussi sa capacité.
@@ -568,19 +685,21 @@ choisit aussi sa capacité.
 2. Même question avec un **profil constant** hypothétique. Pourquoi un tel écart ?
 3. Profil réel : baisser le coût fixe du solaire de
    `{python} number(case_study.SOLAR_COST_CUT * 100)` %. Puis, coûts de
-   `{python} annee`, prix du CO₂ à `{python} number(case_study.CO2_PRICES[1])` €/t.
+   `{python} annee`, prix du CO₂ à `{python} number(case_study.CO2_HIGH)` €/t.
    Le résultat surprend-il ?
-4. Comparer les LCOE du solaire et du nucléaire. Que conclure sur le LCOE ?
+4. Comparer avec la question 4 : avantages et limites des quantités et des prix ?
 
 ::: {.notes}
 Profil constant : même énergie annuelle, produite à toute heure. Il sert à isoler
 l'effet du profil, la seule différence avec le cas réel.
 
-Le prix du CO₂ ne profite pas forcément au solaire : il favorise aussi le nucléaire,
-qui lui dispute les heures de journée.
+Le prix du CO₂ ne profite pas forcément au solaire : il favorise aussi la base
+décarbonée, qui lui dispute les heures de journée.
 
-Le LCOE compare des MWh produits à des moments différents comme s'ils avaient la même
-valeur : limite déjà vue dans le module long terme, ici chiffrée.
+Quantités : volume garanti, mais il faut choisir le bon volume et porter le risque de
+prix. Prix : le marché trouve le volume, mais sous incertitude (prix du CO₂, des
+combustibles) et avec un financement plus cher. Le LCOE ne suffit pas à comparer :
+il ignore le moment de production.
 :::
 
 ## À retenir {partie="Synthèse"}
@@ -590,10 +709,12 @@ valeur : limite déjà vue dans le module long terme, ici chiffrée.
    de son effet une fois le parc adapté.
 2. **Profit** : rente inframarginale moins coût fixe, signal d'investissement.
    Positif, il manque des capacités. Négatif, il y en a trop. Nul au parc optimal.
-3. **Consommation résiduelle** : le solaire change la forme de ce qui reste à servir,
-   donc le parc pilotable optimal.
-4. **Valeur d'un MWh** : elle dépend du moment où il est produit. Le profil de
-   production compte autant que le coût.
+3. **Prix du CO₂** : il décarbone le parc par le signal prix, sans choisir de
+   technologie.
+4. **Cannibalisation** : la valeur d'un MWh dépend du moment où il est produit. Le
+   profil de production compte autant que le coût.
+5. **Quantités ou prix** : les appels d'offres fixent le volume. Le contrat pour
+   différence soutient et partage le risque de prix, dans les deux sens.
 :::
 
 ::: {.notes}

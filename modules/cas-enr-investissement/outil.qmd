@@ -45,8 +45,6 @@ viewof vue = Inputs.radio(
 ```{ojs}
 //| output: false
 cas0 = buildCase(donnees)
-options0 = thermalOptions(cas0)
-segments0 = envelope(options0, n)
 largeur = Math.min(width, 960)
 rangConso = {
   const idx = d3.range(n).sort((a, b) => cas0.load[b] - cas0.load[a]);
@@ -110,10 +108,18 @@ chronologie : seule compte la durée pendant laquelle chaque niveau est atteint.
 Le parc optimal se lit en croisant deux graphiques : les ***screening curves***, coût
 total d'un MW selon son nombre d'heures de fonctionnement, et la **monotone** de la
 consommation à servir par les filières pilotables. Coûts et consommation de
-`{ojs} donnees.annee`.
+`{ojs} donnees.annee`, prix du CO₂ au choix.
 
 ```{ojs}
+viewof co2Graphique = Inputs.range([0, 200], { value: donnees.questions.prix_co2_depart, step: 0.1, label: "Prix du CO₂ (€/t)" })
 viewof solaire1 = Inputs.range([0, 150], { value: 0, step: 1, label: "Solaire (GW)" })
+```
+
+```{ojs}
+//| output: false
+casGraphique = buildCase(donnees, { co2: co2Graphique })
+options0 = thermalOptions(casGraphique)
+segments0 = envelope(options0, n)
 ```
 
 ```{ojs}
@@ -159,14 +165,14 @@ viewof solaire1 = Inputs.range([0, 150], { value: 0, step: 1, label: "Solaire (G
 residuelle1 = cas0.load.map((x, i) => x - cas0.solarCf[i] * solaire1)
 monotoneConso = durationCurve(cas0.load)
 monotoneResiduelle = durationCurve(residuelle1)
-parc1 = screeningFleet(options0, durationCurve(residualLoad(cas0, solaire1)))
+parc1 = screeningFleet(options0, durationCurve(residualLoad(casGraphique, solaire1)))
 ```
 
 ```{ojs}
 //| label: monotone-parc
 {
   const avecSolaire = solaire1 > 0;
-  const ldc = durationCurve(residualLoad(cas0, solaire1));
+  const ldc = durationCurve(residualLoad(casGraphique, solaire1));
   const marks = [Plot.ruleY([0], { stroke: "#9ca3af" })];
   // Tranches de la monotone à servir, colorées par filière.
   for (const t of parc1.filter((t) => t.capacite > 0.01)) {
@@ -224,7 +230,8 @@ il change la monotone qu'elles doivent servir.
 **Hypothèses**
 
 ```{ojs}
-viewof co2 = Inputs.range([0, 200], { value: donnees.prix_co2, step: 0.1, label: "Prix du CO₂ (€/t)" })
+viewof co2 = Inputs.range([0, 200], { value: donnees.questions.prix_co2_depart, step: 0.1, label: "Prix du CO₂ (€/t)" })
+viewof gaz = Inputs.range([0, 150], { value: donnees.prix_gaz, step: 0.1, label: "Prix du gaz (€/MWh)" })
 viewof profil = Inputs.radio(
   new Map([["Réel", "reel"], ["Constant (hypothétique)", "constant"]]),
   { value: "reel", label: "Profil du solaire" }
@@ -294,7 +301,7 @@ coutsDefaut = Object.fromEntries(TECHS.map((f) => [f, fixedCost(donnees.filieres
 coutFixeModifie = Object.fromEntries(
   TECHS.filter((f) => Math.abs(coutsFixes[f] - coutsDefaut[f]) > 0.05).map((f) => [f, coutsFixes[f] * 1000])
 )
-cas2 = buildCase(donnees, { co2, profil, coutFixe: coutFixeModifie })
+cas2 = buildCase(donnees, { co2, gaz, profil, coutFixe: coutFixeModifie })
 parc2 = ({ solaire: capSolaire, nucleaire: capNucleaire, ccg: capCcg, tac: capTac })
 horaire = dispatch(cas2, parc2)
 resultat = summary(cas2, parc2, horaire)
@@ -317,8 +324,9 @@ lignesSysteme = [
   ["Prix", null],
   ["Prix moyen (€/MWh)", (r) => r.prix_moyen, 1],
   ["Valeur de marché du solaire (€/MWh)", (r) => r.valeur_solaire, 1],
-  ["Subvention du solaire (M€/an)", (r) => r.subvention_solaire, 0],
-  ["Subvention par MWh consommé (€/MWh)", (r) => r.subvention_solaire / consoTWh, 2],
+  ["Contrat pour différence du solaire", null],
+  ["Flux du CfD (M€/an, > 0 versé, < 0 reversé)", (r) => r.cfd_solaire, 0],
+  ["Flux du CfD par MWh consommé (€/MWh)", (r) => r.cfd_solaire / consoTWh, 2],
 ]
 ```
 
@@ -428,11 +436,15 @@ dernière filière appelée.
 - **Émissions de CO₂** : émissions directes des CCG et des TAC (production × facteur
   d'émission du gaz / rendement), nulles pour le nucléaire et le solaire.
 - **Valeur de marché du solaire** : prix moyen pondéré par la production solaire.
-- **Subvention du solaire** : opposé du profit du solaire, multiplié par sa capacité.
+- **Contrat pour différence (CfD) du solaire** : bidirectionnel, prix garanti égal au
+  coût complet du solaire. À chaque heure, la contrepartie publique verse (prix garanti
+  − prix de marché) × production : positif, versé au producteur, négatif, reversé par
+  lui. Sur l'année, le flux vaut l'opposé du profit du solaire.
 
-Coût variable des CCG et des TAC : prix du gaz de `{ojs} donnees.annee`, prix du CO₂
-choisi, coûts d'exploitation variables. Parc optimal : méthode des *screening curves*
-appliquée à la consommation résiduelle, et, si le solaire est choisi, recherche de la
+Coût variable des CCG et des TAC : prix du gaz et du CO₂ choisis
+(`{ojs} fmt(1)(donnees.prix_gaz)` €/MWh et `{ojs} fmt(1)(donnees.prix_co2)` €/t en
+`{ojs} donnees.annee`), coûts d'exploitation variables. Parc optimal : méthode des
+*screening curves* appliquée à la consommation résiduelle, et, si le solaire est choisi, recherche de la
 capacité solaire qui minimise le coût total.
 :::
 

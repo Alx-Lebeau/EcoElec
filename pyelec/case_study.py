@@ -15,14 +15,16 @@ Données :
 Fonctions :
 
 - `load_case` : filières, profil solaire, consommation et VOLL du cas ;
-- `thermal_options` : TAC, CCG, nucléaire avec un prix du CO₂ choisi ;
+- `thermal_options` : TAC, CCG, nucléaire avec des prix du CO₂ et du gaz choisis ;
 - `solar_option`, `load_solar_profile` : coûts du solaire, facteur de charge horaire ;
 - `dispatch` : fonctionnement heure par heure d'un parc donné (merit order) ;
-- `summary` : indicateurs annuels (énergie, coûts, rentes inframarginales, profits,
-  prix, valeur du solaire) ;
+- `summary` : indicateurs annuels (énergie, coûts, émissions, rentes inframarginales,
+  profits, prix, valeur de marché et contrat pour différence du solaire) ;
 - `tool_data` : données de l'outil interactif (JavaScript) ;
 - `optimal_fleet` : parc optimal, avec une capacité solaire imposée ou choisie ;
-- figures : `solar_profile`, `residual_duration`, `dispatch_week`.
+- `base_technology` : filière de base du parc optimal ;
+- figures : `solar_profile`, `residual_duration`, `dispatch_week`, `price_duration`,
+  `co2_screening`, `residual_reading`, `solar_value_curve`.
 
 Unités : GW, GWh par heure, €/MWh, coûts fixes en €/MW/an, résultats annuels en M€.
 """
@@ -42,10 +44,14 @@ SOLAR = "solaire"
 THERMAL = ["nucleaire", "ccg", "tac"]
 YEAR = 2025
 
-# Paramètres des questions, communs aux slides, à l'outil et au corrigé.
-NUCLEAR_CUT = 0.10  # question 2 : part du nucléaire retirée au parc optimal
-CO2_PRICES = (0.0, 150.0)  # question 3 : prix du CO₂ étudiés (€/t)
-SOLAR_MAX_LEVEL = 100.0  # question 4 : plus forte capacité solaire hors marché (GW)
+# Paramètres des questions, communs aux slides, à l'outil et au corrigé. Progression
+# d'un monde sans prix du CO₂ (questions 1 et 2) vers le prix de l'année puis un prix
+# élevé (question 3), puis le solaire (questions 4 et 5) dans le parc décarboné.
+CO2_START = 0.0  # questions 1 et 2 : pas de prix du CO₂ (€/t)
+CO2_HIGH = 150.0  # question 3 : prix du CO₂ élevé, après celui de l'année (€/t)
+BASE_CUT = 0.10  # question 2 : part de la filière de base retirée au parc optimal
+SOLAR_MAX_LEVEL = 100.0  # question 4 : plus forte capacité solaire par appel d'offres (GW)
+GAS_SHOCK_YEAR = 2022  # question 4 : variante, prix du gaz de cette année, parc inchangé
 SOLAR_COST_CUT = 0.30  # question 5 : baisse du coût fixe du solaire
 
 
@@ -53,20 +59,27 @@ SOLAR_COST_CUT = 0.30  # question 5 : baisse du coût fixe du solaire
 # Données
 
 
-def thermal_options(co2_price: float | None = None, year: int | None = None) -> pd.DataFrame:
+def thermal_options(
+    co2_price: float | None = None, year: int | None = None, gas_price: float | None = None
+) -> pd.DataFrame:
     """Options thermiques (`pyelec.investment.load_options`), coût variable des CCG et
-    des TAC recalculé avec `co2_price` (€/t) au lieu du prix de l'année."""
+    des TAC recalculé avec `co2_price` (€/t) et `gas_price` (€/MWh PCS) au lieu des
+    prix de l'année. Prix retenus dans `attrs` (`prix_co2`, `prix_gaz`)."""
     options = investment.load_options(year)
-    if co2_price is not None:
-        costs = gas_plant_costs(year)
-        plants = load_gas_plants()
-        co2 = plants["facteur_emission"] * co2_price / plants["rendement"]
-        for f in ("ccg", "tac"):
-            options.loc[f, "cout_variable"] = costs.loc[f, "gaz"] + co2[f] + costs.loc[f, "vom"]
-    options.attrs["prix_co2"] = (
-        float(gas_plant_costs(year).attrs["prix_co2"]) if co2_price is None else co2_price
-    )
+    costs = gas_plant_costs(year)
+    plants = load_gas_plants()
+    co2 = float(costs.attrs["prix_co2"]) if co2_price is None else co2_price
+    gas = float(costs.attrs["prix_gaz"]) if gas_price is None else gas_price
+    for f in ("ccg", "tac"):
+        r = plants.loc[f]
+        options.loc[f, "cout_variable"] = (gas + r.facteur_emission * co2) / r.rendement + r.vom
+    options.attrs.update(prix_co2=co2, prix_gaz=gas)
     return options
+
+
+def gas_price(year: int) -> float:
+    """Prix annuel moyen du gaz (€/MWh PCS) de `year` (`data/couts/prix-gaz-co2.csv`)."""
+    return float(gas_plant_costs(year).attrs["prix_gaz"])
 
 
 def solar_option(rate: float | None = None) -> pd.Series:
@@ -119,14 +132,19 @@ class Case:
     voll: float  # €/MWh
     attrs: dict = field(default_factory=dict)
 
+    def with_prices(self, co2: float | None = None, gas: float | None = None) -> "Case":
+        """Même cas avec d'autres prix du CO₂ (€/t) ou du gaz (€/MWh), VOLL inchangée."""
+        co2 = self.attrs["prix_co2"] if co2 is None else co2
+        gas = self.attrs["prix_gaz"] if gas is None else gas
+        options = self.options.copy()
+        thermal = thermal_options(co2, gas_price=gas)
+        options.loc[THERMAL, "cout_variable"] = thermal.loc[THERMAL, "cout_variable"]
+        attrs = {**self.attrs, "prix_co2": co2, "prix_gaz": gas}
+        return Case(options, self.load, self.solar_cf, self.voll, attrs)
+
     def with_co2(self, co2_price: float) -> "Case":
         """Même cas avec un autre prix du CO₂ (VOLL inchangée)."""
-        options = self.options.copy()
-        thermal = thermal_options(co2_price)
-        options.loc[THERMAL, "cout_variable"] = thermal.loc[THERMAL, "cout_variable"]
-        return Case(
-            options, self.load, self.solar_cf, self.voll, {**self.attrs, "prix_co2": co2_price}
-        )
+        return self.with_prices(co2=co2_price)
 
     def with_costs(self, **fixed_costs: float) -> "Case":
         """Même cas avec d'autres coûts fixes (€/MW/an), par filière."""
@@ -150,9 +168,9 @@ def emission_factors() -> pd.Series:
     return pd.Series({f: float(gas.get(f, 0.0)) for f in [SOLAR, *THERMAL]})
 
 
-def load_case(co2_price: float | None = None) -> Case:
-    """Cas de référence : coûts de 2025 (gaz et CO₂ de l'année sauf `co2_price`),
-    consommation et profil solaire de 2025.
+def load_case(co2_price: float | None = None, gas: float | None = None) -> Case:
+    """Cas de référence : coûts de 2025 (gaz et CO₂ de l'année sauf `co2_price` et
+    `gas`), consommation et profil solaire de 2025.
 
     VOLL stylisée comme dans le module long terme : délestage et TAC coûtent autant
     au critère de défaillance (3 h par an), avec les coûts de référence.
@@ -160,7 +178,8 @@ def load_case(co2_price: float | None = None) -> Case:
     reference = thermal_options()
     hours = investment.load_reliability()["critere_defaillance"]
     voll = investment.with_load_shedding(reference, hours).attrs["voll"]
-    options = thermal_options(co2_price)[["cout_fixe", "cout_variable"]]
+    thermal = thermal_options(co2_price, gas_price=gas)
+    options = thermal[["cout_fixe", "cout_variable"]]
     solar = solar_option()
     options.loc[SOLAR] = [solar["cout_fixe"], solar["cout_variable"]]
     options["emission"] = emission_factors()
@@ -171,7 +190,10 @@ def load_case(co2_price: float | None = None) -> Case:
         voll,
         {
             "annee": reference.attrs["annee"],
-            "prix_co2": thermal_options(co2_price).attrs["prix_co2"],
+            "prix_co2": thermal.attrs["prix_co2"],
+            "prix_gaz": thermal.attrs["prix_gaz"],
+            # Prix du CO₂ de l'année, même si le cas en retient un autre
+            "prix_co2_annee": reference.attrs["prix_co2"],
         },
     )
     return case
@@ -222,7 +244,12 @@ def dispatch(case: Case, capacities: dict[str, float]) -> pd.DataFrame:
 def summary(case: Case, capacities: dict[str, float], hourly: pd.DataFrame | None = None) -> dict:
     """Indicateurs annuels d'un parc : énergies (TWh), coûts (M€), rente inframarginale
     et profit de long terme par MW (k€/MW/an), prix moyen et valeur de marché du solaire
-    (€/MWh), subvention du solaire (M€/an).
+    (€/MWh), flux du contrat pour différence du solaire (M€/an).
+
+    Contrat pour différence (CfD) bidirectionnel, prix garanti égal au coût complet du
+    solaire : à chaque heure, la contrepartie publique verse (prix garanti − prix de
+    marché) × production, positif ou négatif. Sur l'année, le flux vaut l'opposé du
+    profit du solaire : positif, versé au producteur ; négatif, reversé par lui.
 
     Émissions directes de CO₂ en MtCO₂ par an (TWh × tCO₂/MWh).
 
@@ -267,7 +294,7 @@ def summary(case: Case, capacities: dict[str, float], hourly: pd.DataFrame | Non
         "emissions_totales": sum(energy[f] * o.loc[f, "emission"] for f in techs),
         "prix_moyen": float(hourly["prix"].mean()),
         "valeur_solaire": float(solar_value),
-        "subvention_solaire": -profit[SOLAR] * caps[SOLAR] if caps[SOLAR] > 0 else 0.0,  # M€/an
+        "cfd_solaire": -profit[SOLAR] * caps[SOLAR] if caps[SOLAR] > 0 else 0.0,  # M€/an
     }
 
 
@@ -291,8 +318,8 @@ def _thermal_fleet(case: Case, residual: np.ndarray) -> dict[str, float]:
 def optimal_fleet(
     case: Case, solar: float | None = 0.0, solar_max: float = 1000.0
 ) -> dict[str, float]:
-    """Parc optimal. `solar` fixe la capacité solaire (GW, hors marché) ; `None` la
-    laisse choisir : le coût total est convexe en capacité solaire, d'où une recherche
+    """Parc optimal. `solar` fixe la capacité solaire (GW, décidée par appel d'offres) ;
+    `None` la laisse choisir : le coût total est convexe en capacité solaire, d'où une recherche
     par section dorée, avec le parc thermique optimal pour chaque valeur."""
 
     def fleet(s: float) -> dict[str, float]:
@@ -418,10 +445,15 @@ def _breakeven(options: pd.DataFrame, a: str, b: str) -> float:
     return float((rb.cout_fixe - ra.cout_fixe) / (ra.cout_variable - rb.cout_variable))
 
 
+def _price_label(x: float) -> str:
+    return f"{x:.1f}".replace(".", ",") if x % 1 else f"{x:.0f}"
+
+
 def co2_screening(ax: plt.Axes, case: Case, co2_price: float) -> None:
     """*Screening curves* des filières thermiques (k€/MW/an) au prix du CO₂ du cas
     (trait plein) et à `co2_price` (tirets) : la durée d'équilibre entre CCG et
-    nucléaire recule quand le CO₂ renchérit le gaz."""
+    nucléaire recule quand le CO₂ renchérit le gaz. Sans croisement dans l'année, pas
+    de repère."""
     h = np.array([0, investment.HOURS])
     high = case.with_co2(co2_price).options
     for options, ls, alpha in ((case.options, "-", 1.0), (high, "--", 0.9)):
@@ -430,24 +462,20 @@ def co2_screening(ax: plt.Axes, case: Case, co2_price: float) -> None:
             ax.plot(h, (r.cout_fixe + r.cout_variable * h) / 1000, color=color(f), ls=ls,
                     lw=2.4, alpha=alpha)  # fmt: skip
         x = _breakeven(options, "ccg", "nucleaire")
+        if not 0 < x < investment.HOURS:
+            continue
         y = (
             options.loc["nucleaire", "cout_fixe"] + options.loc["nucleaire", "cout_variable"] * x
         ) / 1000
         ax.plot([x, x], [0, y], color="#374151", lw=1, ls=":")
         ax.plot(x, y, "o", color="#374151", ms=5)
-    for f in THERMAL:
-        r = case.options.loc[f]
+    for f in THERMAL:  # étiquettes en bout des tirets, mieux séparés
+        r = high.loc[f]
         y_end = (r.cout_fixe + r.cout_variable * investment.HOURS) / 1000
         ax.text(investment.HOURS * 1.01, min(y_end, 1550), label(f), color=color(f), fontsize=11,
                 fontweight="bold", va="center")  # fmt: skip
-    ax.plot(
-        [],
-        [],
-        color="#374151",
-        lw=2,
-        label=f"CO₂ à {case.attrs['prix_co2']:.1f} €/t".replace(".", ","),
-    )
-    ax.plot([], [], color="#374151", lw=2, ls="--", label=f"CO₂ à {co2_price:.0f} €/t")
+    for price, ls in ((case.attrs["prix_co2"], "-"), (co2_price, "--")):
+        ax.plot([], [], color="#374151", lw=2, ls=ls, label=f"CO₂ à {_price_label(price)} €/t")
     ax.set_xlim(0, investment.HOURS)
     ax.set_ylim(0, 1600)
     ax.set_xlabel("Heures de fonctionnement par an")
@@ -455,11 +483,25 @@ def co2_screening(ax: plt.Axes, case: Case, co2_price: float) -> None:
     ax.legend(frameon=False, fontsize=9, loc="upper left")
 
 
+def base_technology(case: Case) -> str:
+    """Filière de base du parc optimal : la moins chère pour les plus longues durées de
+    fonctionnement (dernier tronçon de l'enveloppe des *screening curves*)."""
+    shedding = pd.DataFrame({"cout_fixe": [0.0], "cout_variable": [case.voll]},
+                            index=pd.Index(["delestage"], name="filiere"))  # fmt: skip
+    return investment.envelope(pd.concat([shedding, case.options.loc[THERMAL]]))[-1].filiere
+
+
 def residual_reading(ax: plt.Axes, case: Case, solar: float) -> None:
     """Monotones de la consommation et de la consommation résiduelle avec `solar` GW,
-    et lecture de la capacité nucléaire optimale sur chacune (durée d'équilibre entre
-    CCG et nucléaire) : l'écart est le nucléaire en moins."""
-    hours = _breakeven(case.options, "ccg", "nucleaire")
+    et lecture de la tranche de base sur chacune, à la durée d'équilibre entre la base
+    et la semi-base : l'écart est la capacité de base en moins. Le mécanisme ne dépend
+    pas de la filière de base (nucléaire ici, charbon ou gaz ailleurs)."""
+    base = base_technology(case)
+    hours = (
+        _breakeven(case.options, "ccg", base)
+        if base != "ccg"
+        else _breakeven(case.options, "tac", "ccg")
+    )
     load = case.load.to_numpy(float)
     residual = load - case.solar_cf.to_numpy(float) * solar
     x = np.arange(1, len(load) + 1)
@@ -472,12 +514,12 @@ def residual_reading(ax: plt.Axes, case: Case, solar: float) -> None:
         ax.plot(x, ldc, color=c, lw=2, label=name)
         levels.append(investment.level(ldc, hours))
         ax.plot([0, hours], [levels[-1]] * 2, color=c, lw=1, ls=":")
-    ax.axvline(hours, color=color("nucleaire"), lw=1.2, ls="--")
+    ax.axvline(hours, color="#374151", lw=1.2, ls="--")
     ax.annotate("", xy=(hours * 0.5, levels[1]), xytext=(hours * 0.5, levels[0]),
-                arrowprops={"arrowstyle": "<->", "color": color("nucleaire"), "lw": 1.5})  # fmt: skip
-    ax.text(hours * 0.5 + 150, (levels[0] + levels[1]) / 2, "nucléaire\nen moins", fontsize=9,
-            va="center", color="#374151")  # fmt: skip
-    ax.text(hours + 120, 88, "durée d'équilibre\nCCG / nucléaire", fontsize=9, va="top",
+                arrowprops={"arrowstyle": "<->", "color": "#374151", "lw": 1.5})  # fmt: skip
+    ax.text(hours * 0.5 + 150, (levels[0] + levels[1]) / 2, "tranche de base\nen moins",
+            fontsize=9, va="center", color="#374151")  # fmt: skip
+    ax.text(hours + 120, 88, "durée d'équilibre\nsemi-base / base", fontsize=9, va="top",
             color="#374151")  # fmt: skip
     ax.set_xlim(0, len(load))
     ax.set_ylim(0, 92)
@@ -486,33 +528,36 @@ def residual_reading(ax: plt.Axes, case: Case, solar: float) -> None:
     ax.legend(frameon=False, fontsize=9, loc="lower left")
 
 
-def solar_day_prices(
-    fig: plt.Figure, case: Case, fleet: dict[str, float], levels, day: str
-) -> None:
-    """Prix heure par heure d'une journée, à parc pilotable donné, un panneau par
-    capacité solaire (GW), avec la production solaire en fond : le solaire chasse les
-    filières chères aux heures où il produit, et fait baisser le prix quand il vend."""
-    axes = fig.subplots(len(levels), 1, sharex=True)
-    cvs = case.options.loc[THERMAL, "cout_variable"].sort_values()
-    top = float(cvs.iloc[-1]) * 1.15
-    for ax, s in zip(axes, levels, strict=True):
-        hourly = dispatch(case, {**fleet, SOLAR: s}).loc[day]
-        h = hourly.index.hour
-        twin = ax.twinx()
-        twin.fill_between(h, hourly[SOLAR], step="mid", color=color(SOLAR), alpha=0.25, lw=0)
-        twin.set_ylim(0, max(levels) * 0.8 if max(levels) else 1)
-        twin.set_yticks([])
-        twin.spines[["top", "right"]].set_visible(False)
-        ax.step(h, np.minimum(hourly["prix"], top), where="mid", color="#111827", lw=2)
-        ax.set_ylim(0, top)
-        ax.set_yticks(cvs.to_numpy(), [label(f) for f in cvs.index], fontsize=8)
-        ax.set_zorder(twin.get_zorder() + 1)
-        ax.patch.set_visible(False)
-        ax.text(0.01, 0.92, f"{s:.0f} GW de solaire", transform=ax.transAxes, fontsize=9,
-                va="top", fontweight="bold")  # fmt: skip
-    axes[-1].set_xlim(0, 23)
-    axes[-1].set_xticks([0, 6, 12, 18, 23])
-    axes[-1].set_xlabel("Heure")
+def solar_value_curve(
+    ax: plt.Axes, case: Case, fleet: dict[str, float], capacities=None
+) -> pd.DataFrame:
+    """Cannibalisation : valeur de marché du solaire (prix moyen pondéré par sa
+    production) selon sa capacité installée, à parc pilotable inchangé (`fleet`) et
+    avec un parc pilotable adapté, comparée au coût complet du solaire. Renvoie les
+    valeurs tracées (€/MWh), indexées par capacité (GW)."""
+    capacities = np.arange(5, 105, 5.0) if capacities is None else np.asarray(capacities, float)
+    rows = []
+    for s in capacities:
+        given = summary(case, {**fleet, SOLAR: s})
+        adapted = summary(case, optimal_fleet(case, s))
+        rows.append({"capacite": s, "parc_inchange": given["valeur_solaire"],
+                     "parc_adapte": adapted["valeur_solaire"]})  # fmt: skip
+    values = pd.DataFrame(rows).set_index("capacite")
+    full_cost = case.options.loc[SOLAR, "cout_fixe"] / (case.solar_cf.mean() * 8760)
+    c = color(SOLAR)
+    ax.plot(values.index, values["parc_inchange"], color=c, lw=2.4,
+            label="Valeur de marché, parc pilotable inchangé")  # fmt: skip
+    ax.plot(values.index, values["parc_adapte"], color=c, lw=2.4, ls="--",
+            label="Valeur de marché, parc pilotable adapté")  # fmt: skip
+    ax.axhline(full_cost, color="#374151", lw=1.4, ls=":")
+    ax.text(capacities[-1], full_cost + 2, "coût complet du solaire", ha="right", va="bottom",
+            fontsize=9, color="#374151")  # fmt: skip
+    ax.set_xlim(0, capacities[-1])
+    ax.set_ylim(0, None)
+    ax.set_xlabel("Capacité solaire installée (GW)")
+    ax.set_ylabel("€/MWh")
+    ax.legend(frameon=False, fontsize=9, loc="lower left")
+    return values
 
 
 # ---------------------------------------------------------------------------
@@ -538,8 +583,9 @@ def tool_data(year: int = YEAR) -> dict:
             "taux_actualisation": float(r.taux_actualisation),
             "cout_variable": float(r.cout_variable),
         }
-        if f in costs.index:  # coût variable = gaz + co2_par_tonne × prix du CO₂ + vom
-            entry["gaz"] = float(costs.loc[f, "gaz"])
+        if f in costs.index:
+            # Coût variable = gaz_par_mwh × prix du gaz + co2_par_tonne × prix du CO₂ + vom
+            entry["gaz_par_mwh"] = float(1 / plants.loc[f, "rendement"])
             entry["co2_par_tonne"] = float(
                 plants.loc[f, "facteur_emission"] / plants.loc[f, "rendement"]
             )
@@ -551,6 +597,7 @@ def tool_data(year: int = YEAR) -> dict:
     return {
         "annee": int(case.attrs["annee"]),
         "prix_co2": float(case.attrs["prix_co2"]),
+        "prix_gaz": float(case.attrs["prix_gaz"]),
         "voll": float(case.voll),
         "heures": [t.strftime("%Y-%m-%d %H:%M") for t in case.load.index],
         "consommation": [round(float(x), 3) for x in case.load],
@@ -561,9 +608,12 @@ def tool_data(year: int = YEAR) -> dict:
         "couleurs": {f: color(f) for f in [SOLAR, *THERMAL, "delestage"]},
         "libelles": {f: label(f) for f in [SOLAR, *THERMAL, "delestage"]},
         "questions": {
-            "baisse_nucleaire": NUCLEAR_CUT,
-            "prix_co2": list(CO2_PRICES),
+            "prix_co2_depart": CO2_START,
+            "prix_co2_haut": CO2_HIGH,
+            "baisse_base": BASE_CUT,
             "niveaux_solaire": list(solar_levels(year)),
+            "annee_choc_gaz": GAS_SHOCK_YEAR,
+            "prix_gaz_choc": gas_price(GAS_SHOCK_YEAR),
             "baisse_cout_solaire": SOLAR_COST_CUT,
         },
     }

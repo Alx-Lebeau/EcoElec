@@ -34,16 +34,23 @@ console.log(JSON.stringify(out));
 
 def _scenarios(case: cs.Case) -> dict:
     """Scénarios des questions : (cas Python, paramètres JS, capacités ou solaire)."""
+    start = case.with_co2(cs.CO2_START)
+    ref0 = cs.optimal_fleet(start)
+    base = cs.base_technology(start)
     ref = cs.optimal_fleet(case)
     _, mid, high = cs.solar_levels()
+    shock = cs.gas_price(cs.GAS_SHOCK_YEAR)
     solar_cf = case.options.loc[cs.SOLAR, "cout_fixe"] * (1 - cs.SOLAR_COST_CUT)
+    co2_0 = {"co2": cs.CO2_START}
     return {
-        "q1": (case, {}, None, 0.0),
-        "q2": (case, {}, {**ref, "nucleaire": ref["nucleaire"] * (1 - cs.NUCLEAR_CUT)}, None),
-        "q3_court": (case.with_co2(cs.CO2_PRICES[0]), {"co2": cs.CO2_PRICES[0]}, ref, None),
-        "q3_long": (case.with_co2(cs.CO2_PRICES[1]), {"co2": cs.CO2_PRICES[1]}, None, 0.0),
+        "q1": (start, co2_0, None, 0.0),
+        "q2": (start, co2_0, {**ref0, base: ref0[base] * (1 - cs.BASE_CUT)}, None),
+        "q3_court": (case, {}, ref0, None),
+        "q3_long": (case, {}, None, 0.0),
+        "q3_haut": (case.with_co2(cs.CO2_HIGH), {"co2": cs.CO2_HIGH}, None, 0.0),
         "q4_court": (case, {}, {**ref, cs.SOLAR: high}, None),
         "q4_long": (case, {}, None, mid),
+        "q4_gaz": (case.with_prices(gas=shock), {"gaz": shock}, cs.optimal_fleet(case, mid), None),
         "q5_reel": (case, {}, None, "libre"),
         "q5_constant": (case.with_constant_solar(), {"profil": "constant"}, None, "libre"),
         "q5_cout": (
@@ -99,11 +106,11 @@ def test_js_matches_python(tmp_path):
             "prix_moyen",
             "delestage",
             "ecretement",
-            "subvention_solaire",
+            "cfd_solaire",
             "emissions_totales",
         ):
-            # Subvention en M€/an, proche de zéro quand le solaire est choisi : écart absolu.
-            abs_ = 1.0 if key == "subvention_solaire" else 1e-6
+            # Flux du CfD en M€/an, proche de zéro quand le solaire est choisi : écart absolu.
+            abs_ = 1.0 if key == "cfd_solaire" else 1e-6
             assert _close(float(py[key]), js["summary"][key], rel=tol, abs_=abs_), (name, key)
         assert py["heures_delestage"] == js["summary"]["heures_delestage"], name
         for key in ("energie", "rente_inframarginale", "profit", "emissions"):

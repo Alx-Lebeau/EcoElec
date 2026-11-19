@@ -22,29 +22,31 @@ export function fixedCost(t) {
     + t.exploitation_fixe * 1000;
 }
 
-/** Coût variable (€/MWh) d'une filière au prix du CO₂ `co2` (€/t). */
-export function variableCost(t, co2) {
-  return "gaz" in t ? t.gaz + t.co2_par_tonne * co2 + t.vom : t.cout_variable;
+/** Coût variable (€/MWh) d'une filière aux prix du CO₂ `co2` (€/t) et du gaz `gaz`
+ *  (€/MWh PCS). */
+export function variableCost(t, co2, gaz) {
+  return "gaz_par_mwh" in t ? t.gaz_par_mwh * gaz + t.co2_par_tonne * co2 + t.vom : t.cout_variable;
 }
 
 /** Cas étudié, à partir des données exportées par pyelec.case_study.tool_data.
- *  params : co2 (€/t), coutFixe ({filière: €/MW/an}, remplace le coût calculé),
- *  profil ("reel" ou "constant"). */
+ *  params : co2 (€/t), gaz (€/MWh PCS), coutFixe ({filière: €/MW/an}, remplace le
+ *  coût calculé), profil ("reel" ou "constant"). */
 export function buildCase(data, params = {}) {
   const co2 = params.co2 ?? data.prix_co2;
+  const gaz = params.gaz ?? data.prix_gaz;
   const options = {};
   for (const f of TECHS) {
     const t = data.filieres[f];
     options[f] = {
       cout_fixe: params.coutFixe?.[f] ?? fixedCost(t),
-      cout_variable: variableCost(t, co2),
+      cout_variable: variableCost(t, co2, gaz),
       // Émissions directes (tCO₂/MWh) : gaz brûlé par les CCG et les TAC, nulles sinon.
       emission: t.co2_par_tonne ?? 0,
     };
   }
   let solarCf = Float64Array.from(data.facteur_charge_solaire);
   if (params.profil === "constant") solarCf = solarCf.fill(mean(solarCf));
-  return { options, load: Float64Array.from(data.consommation), solarCf, voll: data.voll, co2 };
+  return { options, load: Float64Array.from(data.consommation), solarCf, voll: data.voll, co2, gaz };
 }
 
 export function mean(a) {
@@ -154,7 +156,8 @@ export function summary(c, caps, hourly = dispatch(c, caps)) {
     emissions_totales: sum(Object.values(emissions)),
     prix_moyen: mean(hourly.prix),
     valeur_solaire: energy[SOLAR] > 0 ? pv / sum(hourly[SOLAR]) : NaN,
-    subvention_solaire: cap[SOLAR] > 0 ? -profit[SOLAR] * cap[SOLAR] : 0,
+    // Contrat pour différence, prix garanti = coût complet : > 0 versé, < 0 reversé.
+    cfd_solaire: cap[SOLAR] > 0 ? -profit[SOLAR] * cap[SOLAR] : 0,
   };
 }
 
