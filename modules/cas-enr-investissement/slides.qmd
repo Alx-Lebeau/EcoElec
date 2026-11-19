@@ -270,7 +270,7 @@ sans contrainte, ce qui est optimiste (minimum technique, rampes).
 **Sorties**
 
 - production, écrêtement, délestage
-- coût total du système
+- coût total du système, émissions de CO₂
 - prix moyen, valeur de marché du solaire
 - rente inframarginale et profit de chaque filière
 - graphiques : *screening curves*, monotones, semaines types
@@ -287,8 +287,8 @@ sans installation, dans le navigateur.
 
 ::: {.notes}
 Outil en ligne, aussi accessible depuis la page du parcours et l'accueil du site du
-cours. Deux onglets : la méthode graphique (*screening curves* et monotone), puis le
-modèle complet.
+cours. Trois onglets : la consommation (courbe chronologique et monotone), la méthode
+graphique (*screening curves* et monotone, avec du solaire), puis le modèle complet.
 
 Deux usages du bouton « Parc optimal » : avec la capacité solaire imposée (solaire
 hors marché, question 4) ou choisie par le calcul comme les autres filières (solaire

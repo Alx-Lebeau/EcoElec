@@ -94,12 +94,19 @@ def test_js_matches_python(tmp_path):
         for f, v in caps.items():
             assert _close(float(v), js["caps"][f], rel=tol, abs_=tol), (name, f)
         py = cs.summary(py_case, caps)
-        for key in ("cout_total", "prix_moyen", "delestage", "ecretement", "subvention_solaire"):
+        for key in (
+            "cout_total",
+            "prix_moyen",
+            "delestage",
+            "ecretement",
+            "subvention_solaire",
+            "emissions_totales",
+        ):
             # Subvention en M€/an, proche de zéro quand le solaire est choisi : écart absolu.
             abs_ = 1.0 if key == "subvention_solaire" else 1e-6
             assert _close(float(py[key]), js["summary"][key], rel=tol, abs_=abs_), (name, key)
         assert py["heures_delestage"] == js["summary"]["heures_delestage"], name
-        for key in ("energie", "rente_inframarginale", "profit"):
+        for key in ("energie", "rente_inframarginale", "profit", "emissions"):
             for f in py[key]:
                 assert _close(float(py[key][f]), js["summary"][key][f], rel=tol, abs_=1e-3), (
                     name,

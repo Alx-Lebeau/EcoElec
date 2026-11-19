@@ -4,7 +4,7 @@
 // vérifie que les deux donnent les mêmes résultats. Toute modification se fait des
 // deux côtés.
 //
-// Unités : GW, €/MWh, coûts fixes en €/MW/an, résultats annuels en TWh et M€,
+// Unités : GW, €/MWh, coûts fixes en €/MW/an, résultats annuels en TWh, M€ et MtCO₂,
 // rente inframarginale et profit par MW en k€/MW/an.
 
 export const SOLAR = "solaire";
@@ -38,6 +38,8 @@ export function buildCase(data, params = {}) {
     options[f] = {
       cout_fixe: params.coutFixe?.[f] ?? fixedCost(t),
       cout_variable: variableCost(t, co2),
+      // Émissions directes (tCO₂/MWh) : gaz brûlé par les CCG et les TAC, nulles sinon.
+      emission: t.co2_par_tonne ?? 0,
     };
   }
   let solarCf = Float64Array.from(data.facteur_charge_solaire);
@@ -134,6 +136,7 @@ export function summary(c, caps, hourly = dispatch(c, caps)) {
   }
   const profit = per((f) => (cap[f] > 0 ? (margin[f] - fixed[f]) / cap[f] : NaN));
   const total = sum(Object.values(variable)) + sum(Object.values(fixed)) + shed * c.voll;
+  const emissions = per((f) => energy[f] * c.options[f].emission); // MtCO₂
   return {
     capacite: cap,
     energie: energy,
@@ -147,6 +150,8 @@ export function summary(c, caps, hourly = dispatch(c, caps)) {
     cout_total: total,
     rente_inframarginale: per((f) => (cap[f] > 0 ? margin[f] / cap[f] : NaN)),
     profit,
+    emissions,
+    emissions_totales: sum(Object.values(emissions)),
     prix_moyen: mean(hourly.prix),
     valeur_solaire: energy[SOLAR] > 0 ? pv / sum(hourly[SOLAR]) : NaN,
     subvention_solaire: cap[SOLAR] > 0 ? -profit[SOLAR] * cap[SOLAR] : 0,

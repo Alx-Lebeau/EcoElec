@@ -113,7 +113,7 @@ def load_solar_profile(year: int = YEAR) -> pd.Series:
 class Case:
     """Données du cas : coûts des filières, consommation et profil solaire horaires."""
 
-    options: pd.DataFrame  # filières thermiques et solaire : cout_fixe, cout_variable
+    options: pd.DataFrame  # filières : cout_fixe, cout_variable, emission (tCO₂/MWh)
     load: pd.Series  # consommation horaire (GW)
     solar_cf: pd.Series  # facteur de charge horaire du solaire
     voll: float  # €/MWh
@@ -141,6 +141,15 @@ class Case:
         return Case(self.options, self.load, flat, self.voll, {**self.attrs, "profil": "constant"})
 
 
+def emission_factors() -> pd.Series:
+    """Émissions directes de CO₂ par MWh électrique (tCO₂/MWh), par filière : gaz
+    brûlé par les CCG et les TAC (facteur d'émission / rendement), nulles pour le
+    nucléaire et le solaire (hors cycle de vie)."""
+    plants = load_gas_plants()
+    gas = plants["facteur_emission"] / plants["rendement"]
+    return pd.Series({f: float(gas.get(f, 0.0)) for f in [SOLAR, *THERMAL]})
+
+
 def load_case(co2_price: float | None = None) -> Case:
     """Cas de référence : coûts de 2025 (gaz et CO₂ de l'année sauf `co2_price`),
     consommation et profil solaire de 2025.
@@ -154,6 +163,7 @@ def load_case(co2_price: float | None = None) -> Case:
     options = thermal_options(co2_price)[["cout_fixe", "cout_variable"]]
     solar = solar_option()
     options.loc[SOLAR] = [solar["cout_fixe"], solar["cout_variable"]]
+    options["emission"] = emission_factors()
     case = Case(
         options,
         investment.load_curve(),
@@ -214,6 +224,8 @@ def summary(case: Case, capacities: dict[str, float], hourly: pd.DataFrame | Non
     et profit de long terme par MW (k€/MW/an), prix moyen et valeur de marché du solaire
     (€/MWh), subvention du solaire (M€/an).
 
+    Émissions directes de CO₂ en MtCO₂ par an (TWh × tCO₂/MWh).
+
     Rente inframarginale d'un MW : somme sur l'année de (prix − coût variable) ×
     production. Profit (de long terme) : rente inframarginale moins coût fixe."""
     hourly = dispatch(case, capacities) if hourly is None else hourly
@@ -251,6 +263,8 @@ def summary(case: Case, capacities: dict[str, float], hourly: pd.DataFrame | Non
         "cout_total": total,
         "rente_inframarginale": {f: margin[f] / caps[f] if caps[f] > 0 else np.nan for f in techs},
         "profit": profit,
+        "emissions": {f: energy[f] * o.loc[f, "emission"] for f in techs},  # MtCO₂
+        "emissions_totales": sum(energy[f] * o.loc[f, "emission"] for f in techs),
         "prix_moyen": float(hourly["prix"].mean()),
         "valeur_solaire": float(solar_value),
         "subvention_solaire": -profit[SOLAR] * caps[SOLAR] if caps[SOLAR] > 0 else 0.0,  # M€/an

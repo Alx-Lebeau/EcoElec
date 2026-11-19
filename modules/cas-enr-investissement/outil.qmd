@@ -29,19 +29,17 @@ debutsMois = d3.range(12).map((m) => donnees.heures.findIndex((h) => +h.slice(5,
 
 ::: {.panel-tabset}
 
-## Méthode graphique
+## Consommation
 
-Le parc optimal se lit en croisant deux graphiques : les ***screening curves***, coût
-total d'un MW selon son nombre d'heures de fonctionnement, et la **monotone** de la
-consommation à servir par les filières pilotables. Coûts et consommation de
-`{ojs} donnees.annee`.
+La consommation de la France, heure par heure, en `{ojs} donnees.annee`. En la
+classant par ordre décroissant, on obtient la **monotone** : pour chaque niveau de
+puissance, elle donne le nombre d'heures par an où la consommation le dépasse.
 
 ```{ojs}
 viewof vue = Inputs.radio(
   new Map([["Courbe chronologique", "chrono"], ["Monotone", "monotone"]]),
-  { value: "chrono", label: "Consommation" }
+  { value: "chrono", label: "Affichage" }
 )
-viewof solaire1 = Inputs.range([0, 150], { value: 0, step: 1, label: "Solaire (GW)" })
 ```
 
 ```{ojs}
@@ -50,6 +48,72 @@ cas0 = buildCase(donnees)
 options0 = thermalOptions(cas0)
 segments0 = envelope(options0, n)
 largeur = Math.min(width, 960)
+rangConso = {
+  const idx = d3.range(n).sort((a, b) => cas0.load[b] - cas0.load[a]);
+  const r = new Int32Array(n);
+  idx.forEach((i, k) => (r[i] = k));
+  return r;
+}
+points0 = Array.from({ length: n }, (_, i) => ({ i, c: cas0.load[i], rc: rangConso[i] }))
+```
+
+```{ojs}
+//| output: false
+// Animation : 0 = courbe chronologique, 1 = monotone.
+etat = ({ p: 0 })
+progression = {
+  const cible = vue === "monotone" ? 1 : 0;
+  const depart = etat.p;
+  const t0 = performance.now();
+  const duree = 1400;
+  while (true) {
+    const u = Math.min(1, (performance.now() - t0) / duree);
+    etat.p = depart + (cible - depart) * d3.easeCubicInOut(u);
+    yield etat.p;
+    if (u >= 1) return;
+  }
+}
+```
+
+```{ojs}
+//| label: consommation
+{
+  const p = progression;
+  const x = (d) => (1 - p) * d.i + p * d.rc;
+  // Ligne aux deux extrémités, points pendant l'animation (l'ordre des points change).
+  const trace = p === 0 || p === 1
+    ? Plot.line([...points0].sort((a, b) => x(a) - x(b)), { x, y: "c", stroke: "#374151", strokeWidth: 1.2 })
+    : Plot.dot(points0, { x, y: "c", r: 0.9, fill: "#374151" });
+  const chrono = p < 0.5;
+  return Plot.plot({
+    width: largeur,
+    height: 340,
+    marginLeft: 60,
+    x: {
+      domain: [0, n],
+      label: chrono ? null : "Heures de l'année, classées",
+      ticks: chrono ? debutsMois : undefined,
+      tickFormat: chrono ? (i) => MOIS[debutsMois.indexOf(i)] : fmt(0),
+    },
+    y: { domain: [0, d3.max(cas0.load) * 1.05], label: "Consommation (GW)", grid: true, tickFormat: fmt(0) },
+    marks: [Plot.ruleY([0], { stroke: "#9ca3af" }), trace],
+  });
+}
+```
+
+Consommation entre `{ojs} fmt(1)(d3.min(cas0.load))` et `{ojs} fmt(1)(d3.max(cas0.load))` GW,
+`{ojs} fmt(0)(d3.sum(cas0.load) / 1000)` TWh sur l'année. La monotone perd la
+chronologie : seule compte la durée pendant laquelle chaque niveau est atteint.
+
+## Méthode graphique
+
+Le parc optimal se lit en croisant deux graphiques : les ***screening curves***, coût
+total d'un MW selon son nombre d'heures de fonctionnement, et la **monotone** de la
+consommation à servir par les filières pilotables. Coûts et consommation de
+`{ojs} donnees.annee`.
+
+```{ojs}
+viewof solaire1 = Inputs.range([0, 150], { value: 0, step: 1, label: "Solaire (GW)" })
 ```
 
 ```{ojs}
@@ -59,7 +123,6 @@ largeur = Math.min(width, 960)
   const lignes = Object.entries(options0).flatMap(([f, o]) =>
     h.map((x) => ({ f, x, y: (o.cout_fixe + o.cout_variable * x) / 1000 }))
   );
-  const xs = [0, ...segments0.map((s) => s.end)];
   const env = d3.range(0, n + 1, 10).map((x) => ({
     x,
     y: d3.min(Object.values(options0), (o) => (o.cout_fixe + o.cout_variable * x) / 1000),
@@ -93,73 +156,35 @@ largeur = Math.min(width, 960)
 
 ```{ojs}
 //| output: false
-rangs = (valeurs) => {
-  const idx = d3.range(valeurs.length).sort((a, b) => valeurs[b] - valeurs[a]);
-  const r = new Int32Array(valeurs.length);
-  idx.forEach((i, k) => (r[i] = k));
-  return r;
-}
-rangConso = rangs(cas0.load)
 residuelle1 = cas0.load.map((x, i) => x - cas0.solarCf[i] * solaire1)
-rangResiduelle = rangs(residuelle1)
-points1 = Array.from({ length: n }, (_, i) => ({
-  i, c: cas0.load[i], r: residuelle1[i], rc: rangConso[i], rr: rangResiduelle[i],
-}))
+monotoneConso = durationCurve(cas0.load)
+monotoneResiduelle = durationCurve(residuelle1)
 parc1 = screeningFleet(options0, durationCurve(residualLoad(cas0, solaire1)))
 ```
 
 ```{ojs}
-//| output: false
-// Animation : 0 = courbe chronologique, 1 = monotone.
-etat = ({ p: 0 })
-progression = {
-  const cible = vue === "monotone" ? 1 : 0;
-  const depart = etat.p;
-  const t0 = performance.now();
-  const duree = 1400;
-  while (true) {
-    const u = Math.min(1, (performance.now() - t0) / duree);
-    etat.p = depart + (cible - depart) * d3.easeCubicInOut(u);
-    yield etat.p;
-    if (u >= 1) return;
-  }
-}
-```
-
-```{ojs}
-//| label: monotone
+//| label: monotone-parc
 {
-  const p = progression;
   const avecSolaire = solaire1 > 0;
+  const ldc = durationCurve(residualLoad(cas0, solaire1));
   const marks = [Plot.ruleY([0], { stroke: "#9ca3af" })];
-  if (p === 1) {
-    // Tranches de la monotone résiduelle, colorées par filière.
-    const ldc = durationCurve(residualLoad(cas0, solaire1));
-    for (const t of parc1.filter((t) => t.capacite > 0.01)) {
-      const data = Array.from(ldc, (y, k) => ({ k, y1: t.bas, y2: Math.max(t.bas, Math.min(y, t.haut)) }));
-      marks.push(Plot.areaY(data, { x: "k", y1: "y1", y2: "y2", fill: coul[t.filiere], fillOpacity: 0.55 }));
-    }
-    marks.push(Plot.ruleX(segments0.slice(0, -1).map((s) => s.end), { stroke: "#374151", strokeDasharray: "4,3" }));
+  // Tranches de la monotone à servir, colorées par filière.
+  for (const t of parc1.filter((t) => t.capacite > 0.01)) {
+    const data = Array.from(ldc, (y, k) => ({ k, y1: t.bas, y2: Math.max(t.bas, Math.min(y, t.haut)) }));
+    marks.push(Plot.areaY(data, { x: "k", y1: "y1", y2: "y2", fill: coul[t.filiere], fillOpacity: 0.55 }));
   }
-  const x = (rang) => (d) => (1 - p) * d.i + p * d[rang];
-  // Ligne aux deux extrémités, points pendant l'animation (l'ordre des points change).
-  const trace = (rang, y, couleur, opacite) => p === 0 || p === 1
-    ? Plot.line([...points1].sort((a, b) => x(rang)(a) - x(rang)(b)),
-        { x: x(rang), y, stroke: couleur, strokeOpacity: opacite, strokeWidth: 1.2 })
-    : Plot.dot(points1, { x: x(rang), y, r: 0.9, fill: couleur, fillOpacity: opacite });
-  marks.push(trace("rc", "c", "#374151", avecSolaire ? 0.45 : 1));
-  if (avecSolaire) marks.push(trace("rr", "r", coul.solaire, 1));
-  const chrono = p < 0.5;
+  marks.push(Plot.ruleX(segments0.slice(0, -1).map((s) => s.end), { stroke: "#374151", strokeDasharray: "4,3" }));
+  marks.push(Plot.line(monotoneConso, {
+    x: (_, k) => k, y: (d) => d, stroke: "#374151", strokeWidth: avecSolaire ? 1 : 1.4, strokeOpacity: avecSolaire ? 0.6 : 1,
+  }));
+  if (avecSolaire) {
+    marks.push(Plot.line(monotoneResiduelle, { x: (_, k) => k, y: (d) => d, stroke: coul.solaire, strokeWidth: 1.6 }));
+  }
   return Plot.plot({
     width: largeur,
     height: 320,
     marginLeft: 60,
-    x: {
-      domain: [0, n],
-      label: chrono ? null : "Heures de l'année, classées",
-      ticks: chrono ? debutsMois : undefined,
-      tickFormat: chrono ? (i) => MOIS[debutsMois.indexOf(i)] : fmt(0),
-    },
+    x: { domain: [0, n], label: "Heures de l'année, classées", tickFormat: fmt(0) },
     y: { domain: [Math.min(0, d3.min(residuelle1)), d3.max(cas0.load) * 1.05], label: "GW", grid: true, tickFormat: fmt(0) },
     marks,
   });
@@ -168,23 +193,21 @@ progression = {
 
 ```{ojs}
 html`<p class="legende">
-  <span style="color:#374151">●</span> consommation
-  ${solaire1 > 0 ? html`&nbsp; <span style="color:${coul.solaire}">●</span> consommation résiduelle
+  <span style="color:#374151">—</span> monotone de la consommation
+  ${solaire1 > 0 ? html`&nbsp; <span style="color:${coul.solaire}">—</span> monotone de la consommation résiduelle
   (consommation moins ${fmt(0)(solaire1)} GW de solaire)` : ""}
 </p>`
 ```
 
 ```{ojs}
-vue === "monotone"
-  ? html`<table class="table table-sm" style="max-width:${largeur}px">
-      <thead><tr><th>Filière</th><th style="text-align:right">Heures de fonctionnement</th>
-      <th style="text-align:right">Capacité (GW)</th></tr></thead>
-      <tbody>${parc1.map((t) => html`<tr>
-        <td><span style="color:${coul[t.filiere]}">■</span> ${lib[t.filiere]}</td>
-        <td style="text-align:right">${t.fin >= n ? `plus de ${fmt(0)(t.debut)}` : `de ${fmt(0)(t.debut)} à ${fmt(0)(t.fin)}`}</td>
-        <td style="text-align:right">${fmt(1)(t.capacite)}</td></tr>`)}
-      </tbody></table>`
-  : html`<p><em>Passer à la monotone pour lire le parc optimal.</em></p>`
+html`<table class="table table-sm" style="max-width:${largeur}px">
+  <thead><tr><th>Filière</th><th style="text-align:right">Heures de fonctionnement</th>
+  <th style="text-align:right">Capacité (GW)</th></tr></thead>
+  <tbody>${parc1.map((t) => html`<tr>
+    <td><span style="color:${coul[t.filiere]}">■</span> ${lib[t.filiere]}</td>
+    <td style="text-align:right">${t.fin >= n ? `plus de ${fmt(0)(t.debut)}` : `de ${fmt(0)(t.debut)} à ${fmt(0)(t.fin)}`}</td>
+    <td style="text-align:right">${fmt(1)(t.capacite)}</td></tr>`)}
+  </tbody></table>`
 ```
 
 **Lecture.** Chaque durée d'équilibre (tirets) découpe la monotone en tranches : une
@@ -289,6 +312,8 @@ lignesSysteme = [
   ["Coûts variables", (r) => d3.sum(Object.values(r.cout_variable)), 0],
   ["Coût du délestage", (r) => r.cout_delestage, 0],
   ["Coût total", (r) => r.cout_total, 0],
+  ["Émissions", null],
+  ["Émissions de CO₂ (MtCO₂/an)", (r) => r.emissions_totales, 1],
   ["Prix", null],
   ["Prix moyen (€/MWh)", (r) => r.prix_moyen, 1],
   ["Valeur de marché du solaire (€/MWh)", (r) => r.valeur_solaire, 1],
@@ -400,6 +425,8 @@ dernière filière appelée.
   production, divisée par la capacité.
 - **Profit** : rente inframarginale moins coût fixe. Nul pour toutes les filières au
   parc optimal.
+- **Émissions de CO₂** : émissions directes des CCG et des TAC (production × facteur
+  d'émission du gaz / rendement), nulles pour le nucléaire et le solaire.
 - **Valeur de marché du solaire** : prix moyen pondéré par la production solaire.
 - **Subvention du solaire** : opposé du profit du solaire, multiplié par sa capacité.
 
