@@ -186,11 +186,33 @@ def two_circuits(ax: plt.Axes) -> None:
     ax.axis("off")
 
 
+# Chaîne contractuelle : (étape, couleur de fond ; None pour un marché, encadré).
+CHAIN_STEPS = [
+    ("Producteurs", ACCENTS["integre"]),
+    ("Marché de gros", None),
+    ("Fournisseurs", CONTRACT),
+    ("Marché de détail", None),
+    ("Consommateurs", ACCENTS["consommation"]),
+]
+
+
+def market_chain_html() -> str:
+    """Chaîne contractuelle en HTML (slides) : mêmes étapes et couleurs que `market_chain`."""
+    boxes = []
+    for step, fill in CHAIN_STEPS:
+        if fill is None:
+            style = f"border:3px solid {CONTRACT};color:{_shade(CONTRACT, -0.3)};background:white"
+        else:
+            style = f"background:{fill};color:white;border:3px solid {fill}"
+        boxes.append(f'<div class="chaine-etape" style="{style}">{step}</div>')
+    arrow = f'<div class="chaine-fleche" style="color:{TEXT_LIGHT}">→</div>'
+    return '<div class="chaine">' + arrow.join(boxes) + "</div>"
+
+
 def market_chain(ax: plt.Axes) -> None:
     """Chaîne contractuelle, de l'amont à l'aval : cinq étapes reliées par des flèches."""
     W, H = 16.0, 1.6
-    steps = ["Producteurs", "Marché de gros", "Fournisseurs", "Marché de détail", "Consommateurs"]
-    fills = [ACCENTS["integre"], None, CONTRACT, None, ACCENTS["consommation"]]
+    steps, fills = zip(*CHAIN_STEPS)
     width, gap = 2.75, 0.55
     x_start = (W - 5 * width - 4 * gap) / 2
     y0, y1 = 0.25, 1.35

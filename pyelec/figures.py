@@ -129,20 +129,59 @@ def _clean(ax: plt.Axes) -> None:
     ax.tick_params(colors="#475569", labelsize=10.5)
 
 
+def load_views(load: pd.DataFrame, temperature: pd.DataFrame, threshold: float = 15.0) -> dict:
+    """Calculs des trois vues de la courbe de charge (`load_variability`, graphique ECharts).
+
+    `load` : colonnes `heure_locale`, `consommation_gw` (pas horaire) ;
+    `temperature` : colonnes `date`, `temperature_c` (pas quotidien).
+    Renvoie un dictionnaire : `hourly` et `daily` (séries indexées par le temps),
+    `weeks` (nom → série d'une semaine indexée par les heures depuis le lundi 0 h),
+    `both` (consommation quotidienne `gw` et `temperature_c`, indexées par jour),
+    `weekday` (masque des jours ouvrés), `slope` et `intercept` de la droite ajustée
+    sur les jours ouvrés de moins de `threshold` °C, `fit_x` (bornes de la droite).
+    """
+    hourly = load.assign(t=pd.to_datetime(load["heure_locale"])).set_index("t")["consommation_gw"]
+    daily = hourly.resample("D").mean()
+    weeks = {}
+    for month, name in ((1, "hiver"), (7, "été")):
+        mondays = hourly.index[
+            (hourly.index.month == month)
+            & (hourly.index.day_of_week == 0)
+            & (hourly.index.hour == 0)
+        ]
+        start = mondays[1]  # deuxième lundi du mois : semaine sans jour férié de début de mois
+        span = hourly[start : start + pd.Timedelta(hours=24 * 7 - 1)]
+        weeks[name] = pd.Series(span.values, index=(span.index - start) / pd.Timedelta(hours=1))
+    temp = temperature.assign(date=pd.to_datetime(temperature["date"])).set_index("date")
+    both = pd.concat([daily.rename("gw"), temp["temperature_c"]], axis=1).dropna()
+    weekday = both.index.day_of_week < 5
+    cold = both[weekday & (both["temperature_c"] < threshold)]
+    slope, intercept = np.polyfit(cold["temperature_c"], cold["gw"], 1)
+    return {
+        "hourly": hourly,
+        "daily": daily,
+        "weeks": weeks,
+        "both": both,
+        "weekday": weekday,
+        "slope": float(slope),
+        "intercept": float(intercept),
+        "fit_x": (float(cold["temperature_c"].min()), threshold),
+    }
+
+
 def load_variability(
     fig: plt.Figure, load: pd.DataFrame, temperature: pd.DataFrame, threshold: float = 15.0
 ) -> float:
     """Trois vues de la courbe de charge d'une année. Renvoie la thermosensibilité (GW/°C).
 
-    `load` : colonnes `heure_locale`, `consommation_gw` (pas horaire) ;
-    `temperature` : colonnes `date`, `temperature_c` (pas quotidien).
-    En haut, l'année (horaire et moyenne quotidienne) ; en bas à gauche, une
-    semaine d'hiver et une d'été ; en bas à droite, la consommation quotidienne
-    moyenne selon la température, avec la pente sous `threshold` °C.
+    Données : voir `load_views`. En haut, l'année (horaire et moyenne quotidienne) ;
+    en bas à gauche, une semaine d'hiver et une d'été ; en bas à droite, la
+    consommation quotidienne moyenne selon la température, avec la pente sous
+    `threshold` °C.
     """
     winter, summer, slope_color = "#3b5bdb", "#e8590c", "#334155"
-    load = load.assign(t=pd.to_datetime(load["heure_locale"])).set_index("t")["consommation_gw"]
-    daily = load.resample("D").mean()
+    v = load_views(load, temperature, threshold)
+    load, daily = v["hourly"], v["daily"]
 
     grid = fig.add_gridspec(2, 2, height_ratios=[1, 1.15], hspace=0.55, wspace=0.22)
     year = fig.add_subplot(grid[0, :])
@@ -152,20 +191,14 @@ def load_variability(
     year.set_ylabel("GW")
     year.xaxis.set_major_locator(mdates.MonthLocator())
     year.xaxis.set_major_formatter(
-        plt.FuncFormatter(lambda v, _: "JFMAMJJASOND"[mdates.num2date(v).month - 1])
+        plt.FuncFormatter(lambda x, _: "JFMAMJJASOND"[mdates.num2date(x).month - 1])
     )
     _clean(year)
 
     week = fig.add_subplot(grid[1, 0])
-    for month, c, name in ((1, winter, "hiver"), (7, summer, "été")):
-        mondays = load.index[
-            (load.index.month == month) & (load.index.day_of_week == 0) & (load.index.hour == 0)
-        ]
-        start = mondays[1]  # deuxième lundi du mois : semaine sans jour férié de début de mois
-        span = load[start : start + pd.Timedelta(hours=24 * 7 - 1)]
-        hours = (span.index - start) / pd.Timedelta(hours=1)
-        week.plot(hours, span.values, color=c, lw=1.8)
-        week.text(hours[-1] + 2, span.values[-1], name, color=c, fontsize=11, va="center")
+    for (name, span), c in zip(v["weeks"].items(), (winter, summer)):
+        week.plot(span.index, span.values, color=c, lw=1.8)
+        week.text(span.index[-1] + 2, span.values[-1], name, color=c, fontsize=11, va="center")
     week.set_xticks([12 + 24 * d for d in range(7)], list("LMMJVSD"))
     week.set_xlim(0, 24 * 7 + 18)
     week.set_title("Sur la semaine : jour, nuit, week-end", loc="left", fontsize=12)
@@ -173,20 +206,16 @@ def load_variability(
     _clean(week)
 
     scatter = fig.add_subplot(grid[1, 1])
-    temp = temperature.assign(date=pd.to_datetime(temperature["date"])).set_index("date")
-    both = pd.concat([daily.rename("gw"), temp["temperature_c"]], axis=1).dropna()
-    weekday = both.index.day_of_week < 5
+    both, weekday = v["both"], v["weekday"]
     scatter.scatter(both["temperature_c"][weekday], both["gw"][weekday], s=9, color=winter,
                     alpha=0.55, lw=0, label="jours ouvrés")  # fmt: skip
     scatter.scatter(both["temperature_c"][~weekday], both["gw"][~weekday], s=9, color="#94a3b8",
                     alpha=0.7, lw=0, label="week-ends")  # fmt: skip
-    cold = both[weekday & (both["temperature_c"] < threshold)]
-    slope, intercept = np.polyfit(cold["temperature_c"], cold["gw"], 1)
-    xs = np.array([cold["temperature_c"].min(), threshold])
-    scatter.plot(xs, slope * xs + intercept, color=slope_color, lw=2)
+    xs = np.array(v["fit_x"])
+    scatter.plot(xs, v["slope"] * xs + v["intercept"], color=slope_color, lw=2)
     scatter.set_title("Selon la température : le chauffage", loc="left", fontsize=12)
     scatter.set_xlabel("température moyenne du jour (°C)")
     scatter.set_ylabel("GW")
     scatter.legend(loc="upper right", fontsize=10, markerscale=2, handletextpad=0.2)
     _clean(scatter)
-    return -slope
+    return -v["slope"]

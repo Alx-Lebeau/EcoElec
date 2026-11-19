@@ -48,6 +48,8 @@ Classes définies dans `slides.scss`, à utiliser dans les `slides.qmd` :
 | `table.carnet` | carnet d'ordres achat et vente, produit par `pyelec.bourse.order_book_html` (cellule `output: asis`) |
 | `.sigles` | cartouche de rappel des sigles, coin supérieur droit (liste, placée en fin de slide) |
 | `.a-retenir` | liste numérotée de la slide « À retenir » qui clôt chaque module |
+| `.echart`, `.source-figure` | graphique ECharts et mention de source, produits par `pyelec.echarts.chart` (cellule `output: asis`) |
+| `.chaine` | chaîne contractuelle en HTML, produite par `pyelec.organisation.market_chain_html` |
 | `.transport`, `.distribution`, `.concurrence` | titre en gras coloré comme `pyelec.schema.ACCENTS` |
 
 Charte (`charte.scss`) : bleu nuit (`$nuit`), bleu des titres (`$bleu`), accent cyan (`$accent`) réservé à
