@@ -18,7 +18,7 @@
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
     });
-  const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+  const FONT = '"Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif';
 
   const FORMATTERS = {
     // valeur entière (étiquettes de barres)
@@ -49,7 +49,7 @@
           {
             type: "polyline",
             shape: { points: [[x0 + 2, y], [x0 + 2, y - h], [x1 - 2, y - h], [x1 - 2, y]] },
-            style: { stroke: "#64748b", lineWidth: 1.5, fill: null },
+            style: { stroke: "#5d6573", lineWidth: 1.5, fill: null },
           },
           {
             type: "text",
@@ -59,7 +59,7 @@
               text: params.seriesName,
               align: "center",
               verticalAlign: "bottom",
-              fill: "#334155",
+              fill: "#1c2230",
               font: "bold 20px " + FONT,
             },
           },

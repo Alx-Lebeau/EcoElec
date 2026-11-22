@@ -36,11 +36,14 @@ from pyelec.paths import ROOT
 VERSION = "5.6.0"
 CDN = f"https://cdn.jsdelivr.net/npm/echarts@{VERSION}"
 
-FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif'
-TEXT = "#334155"
-TEXT_LIGHT = "#64748b"
-GRID_LINE = "#e2e8f0"
+# Police et couleurs de la charte (commun/charte.scss : $police, $clair-texte,
+# $clair-texte-discret, $gris-filet, $bleu)
+FONT = '"Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif'
+TEXT = "#1c2230"
+TEXT_LIGHT = "#5d6573"
+GRID_LINE = "#e3e6eb"
 AXIS_LINE = "#cbd5e1"
+ACCENT = "#1f3a68"
 NBSP = " "  # avant : ; ! ?
 NNBSP = " "  # avant %, dans les nombres
 
@@ -206,7 +209,7 @@ def mix_option(mix: pd.DataFrame) -> dict:
             "label": {"fontSize": 16, "color": TEXT_LIGHT},
             "lineStyle": {"color": AXIS_LINE},
             "itemStyle": {"color": AXIS_LINE},
-            "checkpointStyle": {"color": "#1f4e79", "borderWidth": 0, "symbolSize": 13},
+            "checkpointStyle": {"color": ACCENT, "borderWidth": 0, "symbolSize": 13},
             "controlStyle": {"color": TEXT_LIGHT, "borderColor": TEXT_LIGHT, "itemSize": 18},
             "progress": {"lineStyle": {"color": "#94a3b8"}, "itemStyle": {"color": "#94a3b8"}},
         },
@@ -299,7 +302,7 @@ def load_variability_option(
     en bas, une semaine d'hiver et une d'été, et la consommation quotidienne
     selon la température avec la droite ajustée.
     """
-    winter, summer, dark, weekend = "#3b5bdb", "#e8590c", "#334155", "#94a3b8"
+    winter, summer, dark, weekend = "#3b5bdb", "#e8590c", TEXT, "#94a3b8"
     v = load_views(load, temperature, threshold)
     hourly, daily = v["hourly"], v["daily"]
 
@@ -326,7 +329,7 @@ def load_variability_option(
     axis = {
         "axisLine": {"lineStyle": {"color": AXIS_LINE}},
         "axisTick": {"show": False},
-        "axisLabel": {"color": "#475569", "fontSize": 17},
+        "axisLabel": {"color": TEXT_LIGHT, "fontSize": 17},
         "splitLine": {"lineStyle": {"color": GRID_LINE}},
     }
     y_axis = {**axis, "type": "value", "scale": True}

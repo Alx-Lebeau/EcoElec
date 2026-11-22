@@ -225,7 +225,7 @@ $presentation-h2-font-size: 1.3em;
 .reveal .slides .source-figure {
   margin: 0.2em 0 0;
   font-size: 0.42em;
-  color: #64748b;
+  color: $gris-texte;
   text-align: left;
 }
 
@@ -239,7 +239,6 @@ $presentation-h2-font-size: 1.3em;
 .reveal .slides .chaine-etape {
   flex: 1;
   padding: 0.45em 0.3em;
-  border-radius: 10px;
   text-align: center;
   font-size: 0.68em;
   font-weight: bold;
