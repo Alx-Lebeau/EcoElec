@@ -140,11 +140,47 @@ centrale, rémunération du capital comprise.
 
 Indicateur très utilisé dans le débat public (rapports de l'Agence internationale de
 l'énergie, de Lazard, de la Cour des comptes), souvent pour comparer les filières :
-ses limites, deux slides plus loin, montrent pourquoi c'est risqué.
+ses limites, plus loin, montrent pourquoi c'est risqué.
 
 Actualiser la production surprend souvent : c'est ce qui fait du LCOE un prix
 constant. Les recettes futures d'un MWh vendu au prix LCOE sont actualisées comme les
 coûts.
+:::
+
+## Le LCOE, un prix de vente normatif
+
+Le LCOE répond à une question : **à quel prix moyen vendre chaque MWh pour que la
+centrale soit tout juste rentable ?**
+
+:::: {.columns}
+::: {.column width="50%"}
+- vendu en moyenne au-dessus : la centrale rapporte plus que le taux d'actualisation
+- vendu en dessous : elle ne couvre pas ses coûts
+:::
+::: {.column width="50%"}
+Un calcul **normatif** : il suppose une production et un taux d'actualisation, pas
+des prix de marché.
+:::
+::::
+
+::: {.attention}
+« En moyenne » sur les MWh que la centrale produit, au prix des heures où elle les
+produit.
+:::
+
+::: {.formel}
+Prix constant $P$ qui annule la valeur actualisée nette :
+$\sum_{t=1}^{n} \left(P \times E_t - C_t\right) / (1+r)^t = 0$, d'où $P = \text{LCOE}$.
+:::
+
+::: {.notes}
+Le LCOE se lit comme un prix de vente cible. Un investisseur qui vend tous ses MWh au
+LCOE récupère exactement sa mise, rémunérée au taux d'actualisation. D'où son usage
+pour fixer les prix des contrats de long terme (tarifs d'achat, contrats pour
+différence) : le prix garanti couvre le LCOE du projet.
+
+La mise en garde prépare la suite : le prix auquel une centrale vend n'est pas le prix
+moyen du marché, mais la moyenne des prix des heures où elle produit.
 :::
 
 ## Le LCOE dépend des heures de fonctionnement
@@ -273,10 +309,6 @@ socio-économique de France Stratégie).
 
 ## Deux erreurs fréquentes {.approfondissement}
 
-```{python}
-journee, prix_moyen, prix_capte = investment.capture_price_example()
-```
-
 :::: {.columns}
 ::: {.column width="50%"}
 **Comparer les LCOE de filières aux profils différents**
@@ -292,37 +324,65 @@ capté** : prix moyen pondéré par sa production.
 :::
 ::::
 
-```{python}
-#| output: asis
-entete = "| | " + " | ".join(journee["tranche"]) + " |"
-lignes = [entete, "|:--|" + "--:|" * len(journee)]
-for col, nom in [("prix", "Prix (€/MWh)"), ("solaire", "Solaire (MW)"), ("pointe", "Pointe (MW)")]:
-    lignes.append(f"| {nom} | " + " | ".join(number(v) for v in journee[col]) + " |")
-print("\n".join(lignes))
-```
-
-Prix moyen : **`{python} number(prix_moyen)` €/MWh**. Prix capté : solaire
-**`{python} number(prix_capte["solaire"])` €/MWh**, pointe
-**`{python} number(prix_capte["pointe"])` €/MWh**.
-
 ::: {.sigles}
 - LCOE : coût actualisé de l'énergie
 - TAC : turbine à combustion
 :::
 
 ::: {.notes}
-Prix capté : recettes de marché de la centrale divisées par sa production. Exemple
-d'une journée stylisée en six tranches de quatre heures : le solaire produit surtout
-en milieu de journée, quand le prix est bas, la centrale de pointe seulement en fin
-d'après-midi, quand il est haut. Même marché, prix captés du simple au triple.
-
-Pour une centrale de pointe, le prix capté dépasse nettement le prix moyen. Pour le solaire, il passe
-sous le prix moyen à mesure que le parc solaire grandit : toutes les installations
-produisent aux mêmes heures et font baisser le prix de ces heures (module ENR et
-flexibilités).
-
 Ce que les deux erreurs ont en commun : elles ignorent la valeur des MWh pour le
 système, qui dépend du moment où ils sont produits.
+
+Prix capté : recettes de marché de la centrale divisées par sa production. Exemple
+chiffré à la slide suivante.
+:::
+
+## Prix moyen, prix capté et LCOE {.approfondissement}
+
+```{python}
+exemple = investment.capture_price_example()
+eolien = investment.load_onshore_wind()
+```
+
+::: {.figure-large}
+```{python}
+fig, ax = plt.subplots(figsize=(10, 3.3))
+fig.subplots_adjust(bottom=0.2)
+investment.capture_price(ax, exemple)
+style.add_source(fig, "prix illustratifs ; CRE, appels d'offres éolien terrestre (LCOE)", "2025")
+plt.show()
+```
+:::
+
+::: {.sous-schema}
+Quand le vent souffle, tous les parcs éoliens produisent ensemble et le prix baisse.
+Un parc éolien vend donc surtout aux jours bon marché. Comparé au prix moyen, son LCOE
+paraît **rentable**. Au prix capté, il **ne l'est pas**.
+:::
+
+::: {.sigles}
+- LCOE : coût actualisé de l'énergie
+:::
+
+::: {.notes}
+Semaine stylisée : prix et production illustratifs, pas de données de marché.
+Production moyenne de la semaine : `{python} number(exemple.load_factor * 100)` % de
+la puissance, l'ordre de grandeur des parcs récents (environ
+`{python} number(eolien["productible"])` heures équivalentes pleine puissance par an).
+
+LCOE : prix moyen des projets d'éolien terrestre retenus aux appels d'offres, environ
+`{python} number(eolien["prix_moyen_laureats"])` €/MWh, stable depuis mi-2023 (CRE,
+rapport 2026-01). C'est le prix garanti qui rend les projets rentables : la lecture
+normative du LCOE. Investissement d'environ
+`{python} number(eolien["investissement"])` €/kW.
+
+Chiffres : prix moyen `{python} number(exemple.mean_price)` €/MWh, prix capté
+`{python} number(exemple.captured_price)` €/MWh. L'écart se creuse à mesure que le
+parc éolien grandit : c'est la cannibalisation (module ENR et flexibilités).
+
+L'erreur joue dans l'autre sens pour une centrale de pointe : elle produit aux heures
+chères, son prix capté dépasse le prix moyen. Comparer son LCOE au prix moyen la ferait
+juger à tort non rentable.
 :::
 
 ## Le problème du planificateur à long terme {partie="Équilibre de long terme"}

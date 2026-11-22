@@ -8,7 +8,8 @@ Données :
 - `data/couts/` : coût variable des CCG et des TAC (`pyelec.dispatch.gas_plant_costs`) ;
 - `data/couts/securite-approvisionnement.csv` : VOLL et critère de sécurité
   d'approvisionnement (RTE, CRE) ;
-- `data/exemple/prix-capte.csv` : prix et productions illustratifs d'une journée ;
+- `data/exemple/semaine-vent.csv` : prix et production éolienne d'une semaine type ;
+- `data/couts/eolien-terrestre.csv` : coûts de l'éolien terrestre (CRE) ;
 - `data/consommation/courbe-charge-2025.csv` : consommation horaire de la France.
 
 Fonctions :
@@ -17,7 +18,7 @@ Fonctions :
   annuel (€/MW/an) et coût variable de chaque filière ;
 - `load_reliability`, `load_voll`, `with_load_shedding` : le délestage comme moyen fictif (coût fixe nul,
   coût variable égal à la VOLL) ;
-- `capture_price_example` : prix moyen et prix capté d'un exemple illustratif ;
+- `capture_price_example` : prix moyen, prix capté et LCOE d'une centrale de pointe\n  sur une journée type ;
 - `total_cost`, `lcoe` : coût total d'un MW et coût moyen du MWh selon la durée de
   fonctionnement ;
 - `envelope` : filières retenues et durées d'équilibre (enveloppe inférieure) ;
@@ -25,7 +26,7 @@ Fonctions :
 - `optimal_fleet` : parc optimal par la méthode des *screening curves* ;
 - figures : `annuity_schedule`, `screening_curves`, `lcoe_curves`, `lcoe_discount`,
   `shedding_zoom`, `chronological_load`, `load_duration`, `screening_method`,
-  `price_duration`, `rent_of`, `investment_loop`.
+  `capture_price`, `price_duration`, `rent_of`, `investment_loop`.
 
 Usage :
 
@@ -129,18 +130,43 @@ def with_load_shedding(options: pd.DataFrame, hours: float | None = None) -> pd.
     return extended
 
 
-def capture_price_example() -> tuple[pd.DataFrame, float, pd.Series]:
-    """Exemple illustratif : prix par tranche horaire, prix moyen, prix capté par profil.
+def load_onshore_wind() -> pd.Series:
+    """Éolien terrestre (CRE) : `investissement` (€/kW), `productible` (heures
+    équivalentes pleine puissance par an), `prix_moyen_laureats` (€/MWh)."""
+    data = pd.read_csv(DATA_DIR / "couts" / "eolien-terrestre.csv")
+    return data.set_index("grandeur")["valeur"].astype(float)
 
-    Renvoie la table, le prix moyen (moyenne simple des tranches) et, pour chaque
-    profil de production (`solaire`, `pointe`), le prix moyen pondéré par sa production.
+
+@dataclass
+class CaptureExample:
+    """Prix moyen, prix capté et LCOE d'un parc éolien sur une semaine type.
+
+    `table` : `jour`, `prix` (€/MWh), `facteur_charge_eolien` ; `lcoe` : prix moyen des
+    lauréats des appels d'offres, prix de vente qui rend les projets rentables.
     """
-    table = pd.read_csv(DATA_DIR / "exemple" / "prix-capte.csv")
-    profiles = [c for c in table.columns if c not in ("tranche", "prix")]
-    captured = pd.Series(
-        {p: float((table["prix"] * table[p]).sum() / table[p].sum()) for p in profiles}
+
+    table: pd.DataFrame
+    mean_price: float
+    captured_price: float
+    load_factor: float
+    lcoe: float
+
+
+def capture_price_example() -> CaptureExample:
+    """Semaine illustrative : le vent fait baisser les prix des jours où il souffle.
+
+    Prix moyen : moyenne simple des jours. Prix capté : moyenne pondérée par la
+    production éolienne. LCOE : prix moyen des lauréats des appels d'offres (CRE).
+    """
+    table = pd.read_csv(DATA_DIR / "exemple" / "semaine-vent.csv")
+    w = table["facteur_charge_eolien"]
+    return CaptureExample(
+        table=table,
+        mean_price=float(table["prix"].mean()),
+        captured_price=float((table["prix"] * w).sum() / w.sum()),
+        load_factor=float(w.mean()),
+        lcoe=float(load_onshore_wind()["prix_moyen_laureats"]),
     )
-    return table, float(table["prix"].mean()), captured
 
 
 def total_cost(options: pd.DataFrame, hours) -> pd.DataFrame:
@@ -528,6 +554,44 @@ def inframarginal_rents(options: pd.DataFrame, prices: pd.Series) -> pd.DataFram
     rents["rente"] = rents.sum(axis=1)
     rents["cout_fixe"] = options.loc[built, "cout_fixe"]
     return rents
+
+
+def capture_price(ax: plt.Axes, example: CaptureExample) -> None:
+    """Semaine type : production éolienne en barres, prix en paliers, prix moyen, prix
+    capté et LCOE en lignes horizontales."""
+    tab = example.table
+    c = color("eolien")
+    x = np.arange(len(tab))
+    wind = ax.twinx()
+    wind.bar(x, tab["facteur_charge_eolien"] * 100, width=0.8, color=_shade(c, 0.55), lw=0)
+    wind.set_ylim(0, 100)
+    wind.set_ylabel("Éolien (% de la puissance)", color=_shade(c, -0.3), fontsize=11)
+    wind.tick_params(colors=_shade(c, -0.3), labelsize=10)
+    wind.spines["right"].set_visible(True)
+    wind.spines["right"].set_color(_shade(c, -0.1))
+    wind.grid(False)
+    ax.set_zorder(wind.get_zorder() + 1)
+    ax.patch.set_visible(False)
+    xs = np.append(x - 0.5, x[-1] + 0.5)
+    ys = np.append(tab["prix"].to_numpy(), tab["prix"].iloc[-1])
+    ax.step(xs, ys, where="post", color=TEXT, lw=2.5, label="prix du jour")
+    lines = [
+        (example.mean_price, "prix moyen", TEXT_LIGHT, (0, (2, 2))),
+        (example.lcoe, "LCOE", TEXT, (0, (6, 3))),
+        (example.captured_price, "prix capté", _shade(c, -0.35), "-"),
+    ]
+    for value, name, col, ls in lines:
+        ax.axhline(value, color=col, lw=2.2, ls=ls, label=f"{name} : {_num(value)} €/MWh")
+    handles, names = ax.get_legend_handles_labels()
+    handles.append(plt.Rectangle((0, 0), 1, 1, color=_shade(c, 0.55)))
+    names.append("production éolienne")
+    ax.legend(handles, names, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=5,
+              fontsize=11, handlelength=2.2, columnspacing=1.4)  # fmt: skip
+    ax.set_xlim(-0.5, len(tab) - 0.5)
+    ax.set_ylim(0, tab["prix"].max() * 1.2)
+    ax.set_xticks(x, [j.capitalize() for j in tab["jour"]])
+    _axes(ax, None, "Prix (€/MWh)")
+    ax.grid(axis="y", alpha=0.25)
 
 
 def price_duration(ax: plt.Axes, prices: pd.Series, options: pd.DataFrame,

@@ -257,12 +257,27 @@ sont produites par du code à partir de ces fichiers, jamais collées à la main
   consentement à payer, 46 k€/MWh par le consentement à accepter, même étude). Elle
   doit être réestimée au moins tous les cinq ans (méthodologie de l'ACER).
 
-### `exemple/prix-capte.csv`
+### `exemple/semaine-vent.csv`
 
-- **Contenu** : journée stylisée en six tranches de quatre heures : prix (€/MWh) et
-  production (MW) d'un parc solaire et d'une centrale de pointe.
-- **Source** : valeurs choisies pour l'exemple du prix capté.
+- **Contenu** : semaine stylisée, prix journalier (€/MWh) et production éolienne
+  (fraction de la puissance installée). Exemple du prix capté, module long terme.
+- **Source** : valeurs choisies pour l'exemple : prix bas les jours de vent, production
+  moyenne de 26 % de la puissance, proche du productible des parcs récents
+  (`couts/eolien-terrestre.csv`).
 - **Licence** : CC BY-SA 4.0.
+
+### `couts/eolien-terrestre.csv`
+
+- **Contenu** : éolien terrestre en France : investissement (€/kW), productible
+  (heures équivalentes pleine puissance par an), prix moyen pondéré des projets retenus
+  aux appels d'offres (€/MWh).
+- **Source** : CRE, *État des lieux des appels d'offres PPE2*, rapport n° 2026-01
+  (15 janvier 2026), p. 14 et 15 : CAPEX de 1 700 à 1 800 €/kW (milieu retenu),
+  productible de près de 2 300 h, prix moyen des lauréats d'environ 87 €/MWh (figure 5,
+  86,62 €/MWh à la dernière période, stable depuis mi-2023). Entrée `cre-ao-ppe2-2026`
+  de `commun/biblio.bib`. Saisie manuelle.
+- **Précautions** : prix en euros courants, avant indexation. Le prix des lauréats sert
+  d'ordre de grandeur du LCOE : c'est le prix garanti qui rend les projets rentables.
 
 ## À migrer
 

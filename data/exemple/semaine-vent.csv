@@ -1,0 +1,8 @@
+jour,prix,facteur_charge_eolien
+lundi,130,0.05
+mardi,120,0.10
+mercredi,90,0.35
+jeudi,60,0.50
+vendredi,55,0.55
+samedi,100,0.20
+dimanche,110,0.07

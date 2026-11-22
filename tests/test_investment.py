@@ -59,10 +59,14 @@ def test_load_shedding_comes_first():
 
 
 def test_captured_price_is_weighted_by_production():
-    table, mean, captured = investment.capture_price_example()
-    assert mean == pytest.approx(table["prix"].mean())
-    peak_only = table.loc[table["pointe"] > 0, "prix"]
-    assert captured["pointe"] == pytest.approx(peak_only.mean())
+    """Prix capté : moyenne des prix pondérée par la production éolienne."""
+    example = investment.capture_price_example()
+    table = example.table
+    w = table["facteur_charge_eolien"]
+    assert example.mean_price == pytest.approx(table["prix"].mean())
+    assert example.captured_price == pytest.approx((table["prix"] * w).sum() / w.sum())
+    # Le vent fait baisser les prix : l'éolien capte moins que le prix moyen.
+    assert example.captured_price < example.mean_price
 
 
 def test_rents_cover_fixed_costs():
