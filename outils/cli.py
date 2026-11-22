@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from outils import options_label
@@ -174,19 +175,33 @@ def cmd_pdf(args) -> int:
         print("npx introuvable : installer Node.js")
         return 1
     env = {**os.environ, "PUPPETEER_SKIP_DOWNLOAD": "true"}
-    for deck in decks:
-        target = deck.with_suffix(".pdf")
+    # Installation de decktape une fois, avant les exports parallèles (sinon chaque
+    # npx concurrent l'installe dans le même cache)
+    subprocess.run(
+        [npx, "--yes", "decktape@3", "version"], env=env, capture_output=True, check=False
+    )
+
+    def export(deck: Path) -> tuple[Path, subprocess.CompletedProcess]:
+        # Pause courte : pas de transition entre slides (_quarto-slides.yml) et
+        # graphiques ECharts sans animation sous decktape (pyelec/echarts.js)
         command = [
-            npx, "--yes", "decktape@3", "reveal",
+            npx, "--yes", "decktape@3", "reveal", "--pause", str(args.pause),
             "--chrome-path", chrome, "--chrome-arg=--no-sandbox", "--size", "1280x720",
-            deck.resolve().as_uri(), str(target),
+            deck.resolve().as_uri(), str(deck.with_suffix(".pdf")),
         ]  # fmt: skip
-        print(f"→ {target.relative_to(args.root)}")
-        result = subprocess.run(command, env=env, capture_output=True, text=True, check=False)
-        if result.returncode != 0:
-            print(result.stdout[-2000:], result.stderr[-2000:])
-            return 1
-    return 0
+        return deck, subprocess.run(command, env=env, capture_output=True, text=True, check=False)
+
+    failures = 0
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        for deck, result in pool.map(export, decks):
+            target = deck.with_suffix(".pdf").relative_to(args.root)
+            if result.returncode == 0:
+                print(f"→ {target}")
+            else:
+                failures += 1
+                print(f"✗ {target}")
+                print(result.stdout[-2000:], result.stderr[-2000:])
+    return 1 if failures else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -219,6 +234,12 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("pdf", help="exporter en PDF les decks autonomes (decktape)")
     p.add_argument("--dossier", default="_rendu/autonome", help="dossier des decks autonomes")
     p.add_argument("--chrome", help="chemin de Chrome ou Chromium")
+    p.add_argument(
+        "--jobs", type=int, default=4, help="exports simultanés (défaut : 4, cœurs du runner)"
+    )
+    p.add_argument(
+        "--pause", type=int, default=300, help="pause avant chaque slide en ms (défaut : 300)"
+    )
     p.set_defaults(func=cmd_pdf)
 
     p = sub.add_parser("site", help="écrire les adresses courtes des parcours à la racine du site")

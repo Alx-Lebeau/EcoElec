@@ -88,7 +88,10 @@ jobs:
           uv run quarto render decks/modules/exemple --profile slides,autonome
           --output-dir _rendu/autonome 2>&1 | tee autonome-exemple.log
 
-      - name: Decks des parcours en PDF
+      # Étape la plus longue : sur main (site publié) ou lancement manuel seulement.
+      # Ailleurs, les liens PDF de l'accueil sont absents de l'artefact.
+      - name: Decks des parcours en PDF (main ou lancement manuel)
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         run: uv run ecoelec pdf
 
       - name: Adresses courtes des parcours
