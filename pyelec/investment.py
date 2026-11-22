@@ -449,7 +449,8 @@ def lcoe_discount(ax: plt.Axes, hours: dict[str, float], rates=None, year: int |
 def chronological_load(ax: plt.Axes, load: pd.Series) -> None:
     """Courbe de charge horaire d'une année, dans l'ordre chronologique."""
     hours = np.arange(len(load))
-    ax.fill_between(hours, 0, load.to_numpy(), color=_shade(DEMAND, 0.8), lw=0)
+    # Remplissages de 8 760 points en image dans les SVG (poids), bord couvert par la courbe
+    ax.fill_between(hours, 0, load.to_numpy(), color=_shade(DEMAND, 0.8), lw=0, rasterized=True)
     ax.plot(hours, load.to_numpy(), color=DEMAND, lw=0.5)
     starts = [hours[load.index.month == m][0] for m in range(1, 13)]
     ax.set_xticks(starts, list("JFMAMJJASOND"))
@@ -461,7 +462,7 @@ def chronological_load(ax: plt.Axes, load: pd.Series) -> None:
 def load_duration(ax: plt.Axes, ldc: np.ndarray, marks: tuple[float, ...] = ()) -> None:
     """Monotone de charge. `marks` : durées (h) dont on lit la puissance dépassée."""
     hours = np.arange(len(ldc)) + 0.5
-    ax.fill_between(hours, 0, ldc, color=_shade(DEMAND, 0.8), lw=0)
+    ax.fill_between(hours, 0, ldc, color=_shade(DEMAND, 0.8), lw=0, rasterized=True)
     ax.plot(hours, ldc, color=DEMAND, lw=3)
     for h in marks:
         p = level(ldc, h)
@@ -490,7 +491,7 @@ def screening_method(fig: plt.Figure, options: pd.DataFrame, ldc: np.ndarray) ->
     for f, r in fleet.iterrows():
         c = color(f)
         bottom.fill_between(hours, r.bas, np.clip(ldc, r.bas, r.haut), color=_shade(c, 0.35),
-                            lw=0)  # fmt: skip
+                            lw=0, rasterized=True)  # fmt: skip
         small = r.capacite < 0.05 * ldc[0]
         text = f"{label(f)} {_num(r.capacite, 1 if small else 0)} GW"
         if not small:

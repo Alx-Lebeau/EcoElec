@@ -72,4 +72,5 @@ def use_svg() -> None:
         font_manager.fontManager.addfont(ROOT / "commun" / "polices" / name)
     mpl.rcParams["font.sans-serif"] = ["Source Sans 3", *RC_PARAMS["font.sans-serif"]]
     mpl.rcParams["svg.fonttype"] = "path"
+    mpl.rcParams["savefig.dpi"] = 200  # parties `rasterized=True` des SVG
     set_matplotlib_formats("svg")
