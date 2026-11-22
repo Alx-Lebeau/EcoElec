@@ -16,6 +16,7 @@ from pyelec import case_study, label, style
 from pyelec.dispatch import number
 
 style.use()
+style.use_svg()
 cas = case_study.load_case()
 annee = cas.attrs["annee"]
 options = case_study.thermal_options()

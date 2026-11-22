@@ -14,6 +14,7 @@ from pyelec import investment, label, style
 from pyelec.dispatch import number
 
 style.use()
+style.use_svg()
 options = investment.load_options()
 securite = investment.load_reliability()
 # Délestage stylisé : VOLL choisie pour que délestage et TAC se croisent au critère

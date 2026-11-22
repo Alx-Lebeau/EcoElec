@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from pyelec import economie, style
 
 style.use()
+style.use_svg()
 ```
 
 :::: {.columns}

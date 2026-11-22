@@ -15,6 +15,7 @@ from pyelec import bourse, dispatch, economie, label, style
 from pyelec.dispatch import number
 
 style.use()
+style.use_svg()
 parc = dispatch.load_fleet()
 demande = dispatch.load_demand()
 couts_gaz = dispatch.gas_plant_costs()

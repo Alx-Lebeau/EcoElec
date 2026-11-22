@@ -110,12 +110,12 @@ uvx --from 'fonttools[woff]' pyftsubset SourceSans3[wght].ttf --flavor=woff2 \
   --unicodes="U+0000-00FF,U+0131,U+0152-0153,U+0178,U+02C6,U+02DA,U+02DC,U+0300-0308,U+0391-03C9,U+2000-206F,U+2070-209F,U+20AC,U+2122,U+2190-2199,U+2200-22FF,U+FEFF,U+FFFD"
 ```
 
-Schémas SVG des slides (`pyelec.style.use_svg`) : matplotlib ne lit ni le WOFF2 ni une
+Figures SVG des slides (`pyelec.style.use_svg`) : matplotlib ne lit ni le WOFF2 ni une
 police variable. `source-sans-3-regular.ttf` et `source-sans-3-gras.ttf` sont des instances
 statiques (graisses 400 et 700) de `source-sans-3.woff2`, produites avec
 `fontTools.varLib.instancer` (`instantiateVariableFont(..., {"wght": 400}, static=True)`,
 `font.flavor = None`), noms de famille et de style réécrits dans la table `name`
 (famille « Source Sans 3 », styles « Regular » et « Bold »).
 
-Les autres figures matplotlib (PNG des slides, poly, TP) et le PDF du poly gardent leurs
+Les figures matplotlib du poly et des TP et le PDF du poly gardent leurs
 polices propres.

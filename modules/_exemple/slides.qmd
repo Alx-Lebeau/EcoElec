@@ -17,6 +17,7 @@ from pyelec import DATA_DIR, style
 from pyelec.figures import merit_order
 
 style.use()
+style.use_svg()
 parc = pd.read_csv(DATA_DIR / "exemple" / "merit-order-illustratif.csv")
 fig, ax = plt.subplots()
 prix = merit_order(ax, parc, demand=125)
