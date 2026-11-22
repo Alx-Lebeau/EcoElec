@@ -38,8 +38,11 @@ jobs:
       - name: Environnement Python (versions figées par uv.lock)
         run: uv sync --locked
 
+      # Jeton : requêtes identifiées à l'API GitHub (sinon 403 par limite de débit).
       - name: Installer Quarto et TinyTeX
         uses: quarto-dev/quarto-actions/setup@v2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           version: ${{ env.QUARTO_VERSION }}
           tinytex: true
