@@ -14,6 +14,8 @@ Règle du cours : source et date sous chaque figure.
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from pyelec.paths import ROOT
+
 # Taille et résolution des figures : laissées à Quarto (fig-width, fig-height, fig-dpi).
 RC_PARAMS = {
     # Même famille que le thème des slides ; repli sur DejaVu Sans si absente.
@@ -51,13 +53,23 @@ def add_source(fig: plt.Figure, source: str, date: str) -> None:
     )
 
 
+# Police des slides (commun/charte.scss : $police), en TTF statiques : matplotlib
+# ne lit ni le WOFF2 ni les axes d'une police variable (commun/README.md, Polices).
+SLIDES_FONTS = ("source-sans-3-regular.ttf", "source-sans-3-gras.ttf")
+
+
 def use_svg() -> None:
-    """Figures des notebooks en SVG, texte laissé en texte (slides).
+    """Figures des notebooks en SVG, texte en Source Sans 3 (slides).
 
     Vectoriel : net à toute taille de projection et dans les PDF. Le texte est
-    rendu par le navigateur avec la police du deck au lieu d'être vectorisé.
+    vectorisé (`svg.fonttype: path`) : une image SVG n'a pas accès aux polices de
+    la page, la police du deck s'affiche ainsi partout, même hors connexion.
     """
+    from matplotlib import font_manager
     from matplotlib_inline.backend_inline import set_matplotlib_formats
 
-    mpl.rcParams["svg.fonttype"] = "none"
+    for name in SLIDES_FONTS:
+        font_manager.fontManager.addfont(ROOT / "commun" / "polices" / name)
+    mpl.rcParams["font.sans-serif"] = ["Source Sans 3", *RC_PARAMS["font.sans-serif"]]
+    mpl.rcParams["svg.fonttype"] = "path"
     set_matplotlib_formats("svg")

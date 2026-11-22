@@ -146,8 +146,8 @@ parcours, une page des séances avec les chapitres du poly à lire.
   de données (pas sous les schémas de principe).
 - Slides : figures de données interactives en ECharts (`pyelec.echarts`, option calculée en
   Python, cellule `output: asis`, `source` et `date` passées à `chart`). Schémas matplotlib
-  en SVG (`style.use_svg()`). `ecoelec generer` charge ECharts dans les decks qui en ont
-  besoin. Les figures matplotlib de `pyelec.figures` restent la version statique (poly, TP).
+  en SVG, texte vectorisé en Source Sans 3 (`style.use_svg()`). `ecoelec generer` charge
+  ECharts dans les decks qui en ont besoin. Les figures matplotlib de `pyelec.figures` restent la version statique (poly, TP).
 - Code réutilisé d'un module à l'autre : dans `pyelec`, pas copié dans les documents.
 - Optimisation : PuLP avec HiGHS.
 - `uv run ruff check . && uv run ruff format .` avant de valider.
