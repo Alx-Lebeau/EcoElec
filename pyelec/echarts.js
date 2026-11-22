@@ -89,7 +89,8 @@
   function draw(el) {
     let chart = charts.get(el);
     const option = revive(JSON.parse(el.querySelector("script[type='application/json']").textContent));
-    if (printing()) option.animation = false;
+    // option à timeline : {baseOption, options}, l'animation se règle dans baseOption
+    if (printing()) (option.baseOption || option).animation = false;
     if (!chart) {
       chart = echarts.init(el.querySelector(".echart-canvas"), null, {
         renderer: "svg",
